@@ -1038,7 +1038,8 @@
                     }
                     
                     const qs = new URLSearchParams(cleanParams).toString();
-                    const response = await fetch(`${CONFIG.API_BASE_URL}/records?${qs}`);
+                    const url = getApiUrl('records');
+                    const response = await fetch(`${url}?${qs}`);
                     
                     if (!response.ok) {
                         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -1144,7 +1145,8 @@
         async function fetchStatsFromAPI(params = {}) {
             try {
                 const qs = new URLSearchParams(params).toString();
-                const response = await fetch(`${CONFIG.API_BASE_URL}/stats?${qs}`);
+                const url = getApiUrl('stats');
+                const response = await fetch(`${url}?${qs}`);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
