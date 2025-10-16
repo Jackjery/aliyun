@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages and Aliyun FC
+name: Deploy to GitHub Pages
 
 on:
   push:
@@ -34,67 +34,3 @@ jobs:
     - name: Deploy to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v2
-
-  # 部署后端到阿里云函数计算
-  deploy-backend:
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: 'aliyun-fc/package.json'
-        
-    - name: Install Serverless Devs CLI
-      run: |
-        npm install -g @serverless-devs/s
-        
-    - name: Configure Serverless Devs
-      run: |
-        s config add --AccessKeyID ${{ secrets.ALIYUN_ACCESS_KEY_ID }} --AccessKeySecret ${{ secrets.ALIYUN_ACCESS_KEY_SECRET }} --AccountID ${{ secrets.ALIYUN_ACCOUNT_ID }} --access default
-      env:
-        ALIYUN_ACCESS_KEY_ID: ${{ secrets.ALIYUN_ACCESS_KEY_ID }}
-        ALIYUN_ACCESS_KEY_SECRET: ${{ secrets.ALIYUN_ACCESS_KEY_SECRET }}
-        ALIYUN_ACCOUNT_ID: ${{ secrets.ALIYUN_ACCOUNT_ID }}
-        
-    - name: Install backend dependencies
-      run: |
-        cd aliyun-fc
-        npm ci --production
-        
-    - name: Create environment file
-      run: |
-        cd aliyun-fc
-        cat > .env << EOF
-        MYSQL_HOST=${{ secrets.MYSQL_HOST }}
-        MYSQL_PORT=${{ secrets.MYSQL_PORT }}
-        MYSQL_USER=${{ secrets.MYSQL_USER }}
-        MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
-        MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}
-        JWT_SECRET=${{ secrets.JWT_SECRET }}
-        NODE_ENV=production
-        EOF
-        
-    - name: Deploy to Aliyun FC
-      run: |
-        cd aliyun-fc
-        s deploy --assume-yes
-      env:
-        MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
-        MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
-        MYSQL_USER: ${{ secrets.MYSQL_USER }}
-        MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
-        MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
-        JWT_SECRET: ${{ secrets.JWT_SECRET }}
-        
-    - name: Output deployment info
-      run: |
-        echo "🎉 部署完成！"
-        echo "前端地址: ${{ steps.deployment.outputs.page_url }}"
-        echo "API地址: https://${{ secrets.ALIYUN_ACCOUNT_ID }}.cn-hangzhou.fc.aliyuncs.com/2016-08-15/proxy/satellite-analysis"
