@@ -1,0 +1,64 @@
+# 依赖文件
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 环境变量文件
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Vercel
+.vercel
+
+# 日志文件
+*.log
+
+# 临时文件
+*.tmp
+*.temp
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# IDE 文件
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 缓存文件
+.cache/
+
+# 备份文件
+*_old.html
+*_backup.*
+*.bak
+
+# 上传的文件
+uploads/
+temp/
+
+# 阿里云函数计算相关（不需要部署到GitHub）
+aliyun-fc/node_modules/
+aliyun-fc/.env
+fc-packages/
+*.zip
+
+# 数据库相关（不需要部署到GitHub）
+database/
+lib/
+
+# Claude临时文件
+.claude/
+test-extract/
+
+# 文档和指南（可选，保留在GitHub但不影响部署）
+# FIXES_SUMMARY.md
+# CSS-UPDATE-GUIDE.md
+# MIGRATION-CHECKLIST.md
+# README-deployment.md

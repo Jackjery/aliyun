@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录测试 - 卫星任务数据分析平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">
+        <h2 class="text-2xl font-bold text-center mb-6">卫星任务数据分析平台</h2>
+
+        <form id="loginForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-2">用户名</label>
+                <input
+                    id="username"
+                    type="text"
+                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="请输入用户名"
+                    required
+                />
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-2">密码</label>
+                <input
+                    id="password"
+                    type="password"
+                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="请输入密码"
+                    required
+                />
+            </div>
+
+            <div id="message" class="hidden p-3 rounded text-sm"></div>
+
+            <button
+                type="submit"
+                id="loginBtn"
+                class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+            >
+                登录
+            </button>
+        </form>
+
+        <div class="mt-4 p-3 bg-gray-100 rounded text-sm">
+            <p><strong>调试信息:</strong></p>
+            <p id="debugInfo" class="text-xs mt-2 font-mono"></p>
+        </div>
+    </div>
+
+    <script>
+        // 硬编码的API地址
+        const LOGIN_API_URL = 'https://login-paixjucluh.cn-hangzhou.fcapp.run';
+
+        // 显示调试信息
+        document.getElementById('debugInfo').textContent = `API URL: ${LOGIN_API_URL}`;
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const messageDiv = document.getElementById('message');
+            const loginBtn = document.getElementById('loginBtn');
+
+            // 显示加载状态
+            loginBtn.disabled = true;
+            loginBtn.textContent = '登录中...';
+            messageDiv.className = 'p-3 rounded text-sm bg-blue-100 text-blue-800';
+            messageDiv.textContent = '正在连接服务器...';
+            messageDiv.classList.remove('hidden');
+
+            try {
+                console.log('开始登录请求');
+                console.log('URL:', LOGIN_API_URL);
+                console.log('用户名:', username);
+
+                const response = await fetch(LOGIN_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                console.log('响应状态:', response.status);
+
+                const result = await response.json();
+                console.log('响应数据:', result);
+
+                if (response.ok && result.success) {
+                    messageDiv.className = 'p-3 rounded text-sm bg-green-100 text-green-800';
+                    messageDiv.textContent = '✓ 登录成功！';
+
+                    // 保存token
+                    localStorage.setItem('authToken', result.data.token);
+                    localStorage.setItem('userInfo', JSON.stringify(result.data.user));
+
+                    // 显示用户信息
+                    setTimeout(() => {
+                        messageDiv.innerHTML = `
+                            <p>✓ 登录成功！</p>
+                            <p class="mt-2">用户: ${result.data.user.username}</p>
+                            <p>Token已保存到localStorage</p>
+                        `;
+                    }, 500);
+
+                } else {
+                    messageDiv.className = 'p-3 rounded text-sm bg-red-100 text-red-800';
+                    messageDiv.textContent = '✗ ' + (result.error || result.message || '登录失败');
+                }
+
+            } catch (error) {
+                console.error('请求失败:', error);
+                messageDiv.className = 'p-3 rounded text-sm bg-red-100 text-red-800';
+                messageDiv.textContent = '✗ 网络错误: ' + error.message;
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = '登录';
+            }
+        });
+
+        // 页面加载时显示当前URL和配置
+        console.log('=== 登录页面调试信息 ===');
+        console.log('当前页面URL:', window.location.href);
+        console.log('登录API URL:', LOGIN_API_URL);
+        console.log('浏览器:', navigator.userAgent);
+    </script>
+</body>
+</html>
