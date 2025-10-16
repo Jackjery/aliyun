@@ -7,27 +7,23 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     
-    <!-- 配置文件 - 添加版本号防止缓存 -->
-    <script src="./public/js/config.js?v=20251016"></script>
-
-    <!-- 备用配置：如果外部config.js加载失败，使用内联配置 -->
+    <!-- 直接内联配置，不依赖外部文件 -->
     <script>
-        // 确保CONFIG对象正确初始化
-        if (!window.CONFIG || !window.CONFIG.API_ENDPOINTS || !window.CONFIG.API_ENDPOINTS.login) {
-            window.CONFIG = {
-                API_BASE_URL: '',
-                API_ENDPOINTS: {
-                    login: 'https://login-paixjucluh.cn-hangzhou.fcapp.run',
-                    stats: 'https://stats-paixwbwiuk.cn-hangzhou.fcapp.run',
-                    chartData: 'https://chart-data-tqmcgirdnn.cn-hangzhou.fcapp.run',
-                    records: 'https://records-bsjjdmpsel.cn-hangzhou.fcapp.run',
-                    import: 'https://import-rlctokgdul.cn-hangzhou.fcapp.run'
-                },
-                REQUEST_TIMEOUT: 30000,
-                isDevelopment: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-            };
-            console.warn('使用内联备用配置');
-        }
+        // 直接定义CONFIG对象，不加载外部config.js
+        window.CONFIG = {
+            API_BASE_URL: '',
+            API_ENDPOINTS: {
+                login: 'https://login-paixjucluh.cn-hangzhou.fcapp.run',
+                stats: 'https://stats-paixwbwiuk.cn-hangzhou.fcapp.run',
+                chartData: 'https://chart-data-tqmcgirdnn.cn-hangzhou.fcapp.run',
+                records: 'https://records-bsjjdmpsel.cn-hangzhou.fcapp.run',
+                import: 'https://import-rlctokgdul.cn-hangzhou.fcapp.run'
+            },
+            REQUEST_TIMEOUT: 30000,
+            isDevelopment: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1',
+            isGitHubPages: window.location.hostname.includes('github.io')
+        };
+        console.log('✓ CONFIG已初始化（内联版本）:', CONFIG);
     </script>
 
     <script>
