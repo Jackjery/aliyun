@@ -213,13 +213,108 @@
 }
 
 /* ============================================
+   🎨 所有主题通用样式覆盖（使主题色生效）
+   ============================================ */
+
+/* 覆盖 Tailwind 的 text-primary 类，使其使用主题色 */
+.text-primary {
+  color: rgb(var(--color-primary)) !important;
+}
+
+/* 覆盖其他颜色类 */
+.text-secondary {
+  color: rgb(var(--color-secondary)) !important;
+}
+
+.text-success {
+  color: rgb(var(--color-success)) !important;
+}
+
+.text-warning {
+  color: rgb(var(--color-warning)) !important;
+}
+
+.text-danger {
+  color: rgb(var(--color-danger)) !important;
+}
+
+/* 按钮和交互元素 */
+.bg-primary {
+  background-color: rgb(var(--color-primary)) !important;
+}
+
+.border-primary {
+  border-color: rgb(var(--color-primary)) !important;
+}
+
+.hover\:bg-primary\/90:hover {
+  background-color: rgba(var(--color-primary), 0.9) !important;
+}
+
+.hover\:text-primary:hover {
+  color: rgb(var(--color-primary)) !important;
+}
+
+/* 主题色透明度变体 */
+.bg-primary\/10 {
+  background-color: rgba(var(--color-primary), 0.1) !important;
+}
+
+.bg-primary\/20 {
+  background-color: rgba(var(--color-primary), 0.2) !important;
+}
+
+/* 成功色变体 */
+.bg-success\/10 {
+  background-color: rgba(var(--color-success), 0.1) !important;
+}
+
+/* 警告色变体 */
+.bg-warning\/10 {
+  background-color: rgba(var(--color-warning), 0.1) !important;
+}
+
+.bg-warning {
+  background-color: rgb(var(--color-warning)) !important;
+}
+
+.hover\:bg-warning\/90:hover {
+  background-color: rgba(var(--color-warning), 0.9) !important;
+}
+
+/* 危险色变体 */
+.bg-danger\/10 {
+  background-color: rgba(var(--color-danger), 0.1) !important;
+}
+
+.text-danger {
+  color: rgb(var(--color-danger)) !important;
+}
+
+/* 次要色变体 */
+.bg-secondary\/10 {
+  background-color: rgba(var(--color-secondary), 0.1) !important;
+}
+
+.text-secondary {
+  color: rgb(var(--color-secondary)) !important;
+}
+
+/* 强调色变体 */
+.bg-accent\/10 {
+  background-color: rgba(var(--color-accent), 0.1) !important;
+}
+
+.text-accent {
+  color: rgb(var(--color-accent)) !important;
+}
+
+/* ============================================
    🎭 工具类（使用CSS变量）
    ============================================ */
 
 /* 主题色应用 */
-.bg-primary { background-color: rgb(var(--color-primary)); }
 .text-primary-color { color: rgb(var(--color-primary)); }
-.border-primary { border-color: rgb(var(--color-primary)); }
 
 /* 渐变背景 */
 .bg-gradient-primary { background: var(--gradient-primary); }
