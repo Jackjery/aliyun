@@ -1,6 +1,5 @@
 class WebSocketSyncManager {
-    constructor(cacheManager) {
-        this.cacheManager = cacheManager;
+    constructor() {
         this.ws = null;
         this.wsUrl = this.getWebSocketUrl();
         this.reconnectInterval = 5000; // 5秒重连间隔
@@ -23,69 +22,16 @@ class WebSocketSyncManager {
         this.initVisibilityListener();
     }
 
-    // 🆕 初始化页面可见性监听（页面关闭时保存时间戳）
+    // 初始化页面可见性监听（纯后端模式：无需补同步逻辑）
     initVisibilityListener() {
         // 监听页面可见性变化
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
-                // 页面隐藏时保存时间戳
-                this.savePageLeaveTime();
-                console.log('👋 页面隐藏，保存离开时间戳');
+                console.log('👋 页面隐藏');
             } else {
-                // 页面重新可见时触发补同步
-                console.log('👀 页面可见，检查是否需要补同步');
-                this.checkAndPerformCatchup();
+                console.log('👀 页面重新可见');
             }
         });
-
-        // 监听页面卸载（浏览器关闭）
-        window.addEventListener('beforeunload', () => {
-            this.savePageLeaveTime();
-        });
-
-        // 监听页面进入后台（iOS Safari）
-        window.addEventListener('pagehide', () => {
-            this.savePageLeaveTime();
-        });
-    }
-
-    // 🆕 保存页面离开时间
-    savePageLeaveTime() {
-        try {
-            const now = Date.now();
-            localStorage.setItem('satellitePageLeaveTime', now.toString());
-            console.log(`💾 保存页面离开时间: ${new Date(now).toLocaleString()}`);
-        } catch (error) {
-            console.error('❌ 保存页面离开时间失败:', error);
-        }
-    }
-
-    // 🆕 检查并执行补同步
-    async checkAndPerformCatchup() {
-        try {
-            const leaveTime = localStorage.getItem('satellitePageLeaveTime');
-            if (!leaveTime) {
-                console.log('ℹ️ 无页面离开时间记录');
-                return { hasNewData: false, count: 0 };
-            }
-
-            const leaveTimestamp = parseInt(leaveTime);
-            const now = Date.now();
-            const awayDuration = now - leaveTimestamp;
-
-            // 如果离开超过30秒，触发补同步
-            if (awayDuration > 30000) {
-                console.log(`🔄 页面离开 ${Math.round(awayDuration / 1000)} 秒，触发补同步`);
-                const result = await this.performCatchupSync();
-                return result || { hasNewData: false, count: 0 };
-            } else {
-                console.log(`ℹ️ 页面离开时间短 (${Math.round(awayDuration / 1000)}秒)，无需补同步`);
-                return { hasNewData: false, count: 0 };
-            }
-        } catch (error) {
-            console.error('❌ 检查补同步失败:', error);
-            return { hasNewData: false, count: 0 };
-        }
     }
 
     // 获取 WebSocket URL（根据环境自动配置）
@@ -151,9 +97,6 @@ class WebSocketSyncManager {
 
         // 启动心跳检测
         this.startHeartbeat();
-
-        // 执行断线补同步（先检查是否需要）
-        await this.checkAndPerformCatchup();
     }
 
     // 接收消息处理
@@ -214,23 +157,10 @@ class WebSocketSyncManager {
             // 统一转换为小写，支持大小写不敏感
             const op = operation.toLowerCase();
 
-            switch (op) {
-                case 'insert':
-                case 'update':
-                    await this.cacheManager.updateRecord(record);
-                    console.log(`🔄 实时同步：${op === 'insert' ? '新增' : '更新'} 记录 ID: ${record.id}`);
-                    break;
+            // 纯后端模式：只记录日志和触发回调，不更新本地缓存
+            console.log(`🔔 数据变更通知：${op} 记录 ID: ${record?.id || '未知'}`);
 
-                case 'delete':
-                    await this.cacheManager.deleteRecord(record.id);
-                    console.log(`🔄 实时同步：删除记录 ID: ${record.id}`);
-                    break;
-
-                default:
-                    console.warn('⚠️ 未知操作类型:', operation);
-            }
-
-            // 触发更新回调（使用统一的小写操作类型）
+            // 触发更新回调
             if (this.onSyncUpdate) {
                 this.onSyncUpdate({ operation: op, record });
             }
@@ -240,13 +170,15 @@ class WebSocketSyncManager {
         }
     }
 
-    // 处理批量更新
+    // 处理批量更新通知
     async handleBatchUpdate(batchData) {
         const { records } = batchData;
 
         try {
-            const count = await this.cacheManager.batchUpdateRecords(records);
-            console.log(`🔄 批量实时同步：更新 ${count} 条记录`);
+            const count = records?.length || 0;
+
+            // 纯后端模式：只记录通知，不更新本地缓存
+            console.log(`🔔 批量数据变更通知：${count} 条记录`);
 
             // 触发更新回调
             if (this.onSyncUpdate) {
@@ -254,7 +186,7 @@ class WebSocketSyncManager {
             }
 
         } catch (error) {
-            console.error('❌ 批量更新失败:', error);
+            console.error('❌ 处理批量更新通知失败:', error);
         }
     }
 
@@ -318,62 +250,6 @@ class WebSocketSyncManager {
         if (this.heartbeatInterval) {
             clearInterval(this.heartbeatInterval);
             this.heartbeatInterval = null;
-        }
-    }
-
-    // 断线补同步（获取断线期间的变更）
-    async performCatchupSync() {
-        try {
-            const lastSyncTime = await this.cacheManager.getLastSyncTime();
-            console.log(`🔄 开始断线补同步，最后同步时间: ${new Date(lastSyncTime).toLocaleString()}`);
-
-            // 调用后端补同步 API
-            const catchupUrl = CONFIG.isGitHubPages
-                ? CONFIG.API_ENDPOINTS.catchup || `${CONFIG.API_ENDPOINTS.records}/changes`
-                : `${CONFIG.API_BASE_URL}/satellite/changes`;
-
-            const response = await fetch(`${catchupUrl}?since=${lastSyncTime}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            }).catch(err => {
-                // 网络错误，静默处理
-                console.log(`ℹ️ 补同步API不可用（这是正常的，不影响使用）`);
-                return null;
-            });
-
-            if (!response || !response.ok) {
-                // 静默处理，补同步是可选功能
-                if (response && response.status === 500) {
-                    console.log(`ℹ️ 补同步API暂未实现（这是正常的，不影响使用）`);
-                }
-                return { hasNewData: false, count: 0 };
-            }
-
-            const result = await response.json();
-            if (result.success && result.data && result.data.changes) {
-                const changes = result.data.changes;
-
-                if (changes.length > 0) {
-                    console.log(`📦 收到 ${changes.length} 条补同步变更`);
-
-                    // 批量更新
-                    await this.cacheManager.batchUpdateRecords(changes);
-
-                    // 🆕 返回有新数据的标志
-                    return { hasNewData: true, count: changes.length };
-                } else {
-                    console.log('✅ 无需补同步，数据已是最新');
-                    return { hasNewData: false, count: 0 };
-                }
-            }
-
-            return { hasNewData: false, count: 0 };
-
-        } catch (error) {
-            console.error('❌ 断线补同步失败:', error);
-            return { hasNewData: false, count: 0 };
         }
     }
 
@@ -511,53 +387,13 @@ class WebSocketSyncManager {
     }
 }
 
-// 全局实例
-const cacheManager = new CacheManager();
-const dataPreloader = new DataPreloader();
-const wsSyncManager = new WebSocketSyncManager(cacheManager);
+// 全局实例（纯后端模式，不使用本地缓存）
+const wsSyncManager = new WebSocketSyncManager();
 
-// ==================== 原有的API函数（改为从缓存获取）====================
+// ==================== API 函数（纯后端模式）====================
 
-// 从本地缓存获取数据的通用函数（重构为仅使用本地缓存）
-async function fetchDataFromAPI(params = {}) {
-    try {
-        console.log('📍 从本地缓存获取数据:', params);
-        
-        // 从本地缓存查询数据
-        const filters = {};
-        
-        // 时间范围过滤
-        if (params.start_date) {
-            filters.startDate = params.start_date;
-        }
-        if (params.end_date) {
-            filters.endDate = params.end_date;
-        }
-        
-        // 从缓存获取数据
-        const records = await cacheManager.queryAllData(filters);
-        
-        // 构建返回结果，保持原有API格式
-        return {
-            success: true,
-            data: {
-                records: records,
-                count: records.length
-            }
-        };
-        
-    } catch (error) {
-        console.error('❌ 从本地缓存获取数据失败:', error);
-        showError('从本地缓存获取数据失败: ' + error.message);
-        return {
-            success: false,
-            data: {
-                records: [],
-                count: 0
-            }
-        };
-    }
-}
+// 注意：fetchDataFromAPI 已废弃，纯后端模式下应直接调用后端API
+// 如果代码中仍在使用此函数，请改为调用 fetchStatsFromAPI 或直接使用后端 API
 
 async function fetchStatsFromAPI(params = {}) {
     try {
