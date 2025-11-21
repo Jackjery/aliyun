@@ -144,27 +144,47 @@ class TrendAnalysisApp {
      * 初始化 WebSocket 连接
      */
     async initWebSocket() {
-        if (window.wsManager) {
-            this.wsManager = window.wsManager;
-            console.log('✅ 使用已存在的 WebSocket 连接');
-            return;
+        // 等待 wsManager 实例创建
+        if (!window.wsManager) {
+            await new Promise((resolve) => {
+                const checkInterval = setInterval(() => {
+                    if (window.wsManager) {
+                        clearInterval(checkInterval);
+                        resolve();
+                    }
+                }, 50);
+            });
         }
 
+        this.wsManager = window.wsManager;
+
+        // 连接 WebSocket
+        this.wsManager.connect();
+
+        // 设置连接状态回调
+        this.wsManager.onConnectionChange = (connected) => {
+            if (connected) {
+                console.log('✅ WebSocket 已连接');
+            } else {
+                console.warn('⚠️ WebSocket 连接断开');
+            }
+        };
+
+        // 等待连接成功
         return new Promise((resolve, reject) => {
             const checkInterval = setInterval(() => {
-                if (window.wsManager) {
-                    this.wsManager = window.wsManager;
-                    console.log('✅ WebSocket 连接已建立');
+                if (this.wsManager.isConnected) {
                     clearInterval(checkInterval);
+                    console.log('✅ WebSocket 连接成功');
                     resolve();
                 }
             }, 100);
 
             setTimeout(() => {
                 clearInterval(checkInterval);
-                if (!this.wsManager) {
-                    console.error('❌ WebSocket 连接超时');
-                    reject(new Error('WebSocket 连接超时'));
+                if (!this.wsManager.isConnected) {
+                    console.warn('⚠️ WebSocket 连接超时，但继续初始化');
+                    resolve(); // 不要阻塞，允许继续初始化
                 }
             }, 5000);
         });
