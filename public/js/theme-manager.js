@@ -296,11 +296,11 @@ class ThemeManager {
     document.querySelectorAll('.mode-btn').forEach(btn => {
       const isActive = btn.dataset.mode === this.currentMode;
       if (isActive) {
-        btn.classList.add('border-primary', 'bg-primary/10');
         btn.style.borderColor = `rgb(var(--color-primary))`;
+        btn.style.backgroundColor = `rgba(var(--color-primary), 0.1)`;
       } else {
-        btn.classList.remove('border-primary', 'bg-primary/10');
         btn.style.borderColor = `rgb(var(--border-color))`;
+        btn.style.backgroundColor = 'transparent';
       }
     });
 
@@ -309,14 +309,14 @@ class ThemeManager {
       const isActive = btn.dataset.theme === this.currentColorTheme;
       const svg = btn.querySelector('svg');
       if (svg) {
-        svg.classList.toggle('hidden', !isActive);
+        svg.style.display = isActive ? 'block' : 'none';
       }
       if (isActive) {
         btn.style.transform = 'scale(1.1)';
-        btn.style.boxShadow = 'var(--shadow-lg)';
+        btn.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.2)';
       } else {
-        btn.style.transform = '';
-        btn.style.boxShadow = '';
+        btn.style.transform = 'scale(1)';
+        btn.style.boxShadow = 'none';
       }
     });
   }
@@ -334,15 +334,19 @@ class ThemeManager {
   }
 }
 
-// 页面加载完成后自动初始化（延迟确保Tailwind已加载）
+// 页面加载完成后自动初始化
 if (typeof window !== 'undefined') {
-  // 使用load事件而不是DOMContentLoaded，确保所有资源（包括Tailwind CDN）都已加载
-  window.addEventListener('load', () => {
-    setTimeout(() => {
+  // 立即初始化或等待DOMContentLoaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
       window.themeManager = new ThemeManager();
-      console.log('✅ 主题管理器已加载');
-    }, 100);
-  });
+      console.log('✅ 主题管理器已加载 (DOMContentLoaded)');
+    });
+  } else {
+    // DOM已经加载完成，立即初始化
+    window.themeManager = new ThemeManager();
+    console.log('✅ 主题管理器已加载 (立即)');
+  }
 
   // 提供手动初始化方法
   window.initThemeManager = function() {
