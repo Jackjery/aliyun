@@ -132,8 +132,8 @@ class TrendAnalysisApp {
         this.currentFilters.endDate = formatDate(today);
 
         // 更新 UI
-        const startDateEl = document.getElementById('start-date');
-        const endDateEl = document.getElementById('end-date');
+        const startDateEl = document.getElementById('startDate');
+        const endDateEl = document.getElementById('endDate');
         if (startDateEl) startDateEl.value = this.currentFilters.startDate;
         if (endDateEl) endDateEl.value = this.currentFilters.endDate;
 
@@ -175,57 +175,57 @@ class TrendAnalysisApp {
      */
     initTopFilters() {
         this.topFilters.station = new MultiSelectDropdown(
-            'station-dropdown',
-            'station-options',
-            'station-display',
-            'station-value',
-            'station-tags',
-            'station-search',
-            'station-select-all',
+            'stationDropdown',
+            'stationOptions',
+            'stationDisplay',
+            'stationValue',
+            'stationTags',
+            'stationSearch',
+            'selectAllStations',
             (values) => this.onTopFilterChange('stations', values)
         );
 
         this.topFilters.customer = new MultiSelectDropdown(
-            'customer-dropdown',
-            'customer-options',
-            'customer-display',
-            'customer-value',
-            'customer-tags',
-            'customer-search',
-            'customer-select-all',
+            'customerDropdown',
+            'customerOptions',
+            'customerDisplay',
+            'customerValue',
+            'customerTags',
+            'customerSearch',
+            'selectAllCustomers',
             (values) => this.onTopFilterChange('customers', values)
         );
 
         this.topFilters.satellite = new MultiSelectDropdown(
-            'satellite-dropdown',
-            'satellite-options',
-            'satellite-display',
-            'satellite-value',
-            'satellite-tags',
-            'satellite-search',
-            'satellite-select-all',
+            'satelliteDropdown',
+            'satelliteOptions',
+            'satelliteDisplay',
+            'satelliteValue',
+            'satelliteTags',
+            'satelliteSearch',
+            'selectAllSatellites',
             (values) => this.onTopFilterChange('satellites', values)
         );
 
         this.topFilters.taskType = new MultiSelectDropdown(
-            'task-type-dropdown',
-            'task-type-options',
-            'task-type-display',
-            'task-type-value',
-            'task-type-tags',
-            'task-type-search',
-            'task-type-select-all',
+            'typeDropdown',
+            'typeOptions',
+            'typeDisplay',
+            'typeValue',
+            'typeTags',
+            'typeSearch',
+            'selectAllTypes',
             (values) => this.onTopFilterChange('taskTypes', values)
         );
 
         this.topFilters.taskStatus = new MultiSelectDropdown(
-            'task-status-dropdown',
-            'task-status-options',
-            'task-status-display',
-            'task-status-value',
-            'task-status-tags',
-            'task-status-search',
-            'task-status-select-all',
+            'statusDropdown',
+            'statusOptions',
+            'statusDisplay',
+            'statusValue',
+            'statusTags',
+            'statusSearch',
+            'selectAllStatuses',
             (values) => this.onTopFilterChange('taskStatuses', values)
         );
 
@@ -237,57 +237,57 @@ class TrendAnalysisApp {
      */
     initChartFilters() {
         this.chartFilters.station = new MultiSelectDropdown(
-            'station-chart-dropdown',
-            'station-chart-options',
-            'station-chart-display',
-            'station-chart-value',
-            'station-chart-tags',
-            'station-chart-search',
-            'station-chart-select-all',
+            'stationChartDropdown',
+            'stationChartOptions',
+            'stationChartDisplay',
+            'stationChartValue',
+            'stationChartTags',
+            'stationChartSearch',
+            'selectAllStationChart',
             (values) => this.onChartFilterChange('stations', values)
         );
 
         this.chartFilters.customer = new MultiSelectDropdown(
-            'customer-chart-dropdown',
-            'customer-chart-options',
-            'customer-chart-display',
-            'customer-chart-value',
-            'customer-chart-tags',
-            'customer-chart-search',
-            'customer-chart-select-all',
+            'customerChartDropdown',
+            'customerChartOptions',
+            'customerChartDisplay',
+            'customerChartValue',
+            'customerChartTags',
+            'customerChartSearch',
+            'selectAllCustomerChart',
             (values) => this.onChartFilterChange('customers', values)
         );
 
         this.chartFilters.satellite = new MultiSelectDropdown(
-            'satellite-chart-dropdown',
-            'satellite-chart-options',
-            'satellite-chart-display',
-            'satellite-chart-value',
-            'satellite-chart-tags',
-            'satellite-chart-search',
-            'satellite-chart-select-all',
+            'satelliteChartDropdown',
+            'satelliteChartOptions',
+            'satelliteChartDisplay',
+            'satelliteChartValue',
+            'satelliteChartTags',
+            'satelliteChartSearch',
+            'selectAllSatelliteChart',
             (values) => this.onChartFilterChange('satellites', values)
         );
 
         this.chartFilters.taskType = new MultiSelectDropdown(
-            'task-type-chart-dropdown',
-            'task-type-chart-options',
-            'task-type-chart-display',
-            'task-type-chart-value',
-            'task-type-chart-tags',
-            'task-type-chart-search',
-            'task-type-chart-select-all',
+            'typeChartDropdown',
+            'typeChartOptions',
+            'typeChartDisplay',
+            'typeChartValue',
+            'typeChartTags',
+            'typeChartSearch',
+            'selectAllTypeChart',
             (values) => this.onChartFilterChange('taskTypes', values)
         );
 
         this.chartFilters.taskStatus = new MultiSelectDropdown(
-            'task-status-chart-dropdown',
-            'task-status-chart-options',
-            'task-status-chart-display',
-            'task-status-chart-value',
-            'task-status-chart-tags',
-            'task-status-chart-search',
-            'task-status-chart-select-all',
+            'statusChartDropdown',
+            'statusChartOptions',
+            'statusChartDisplay',
+            'statusChartValue',
+            'statusChartTags',
+            'statusChartSearch',
+            'selectAllStatusChart',
             (values) => this.onChartFilterChange('taskStatuses', values)
         );
 
@@ -299,9 +299,9 @@ class TrendAnalysisApp {
      */
     initEventListeners() {
         // 日期和周期变化
-        const startDateEl = document.getElementById('start-date');
-        const endDateEl = document.getElementById('end-date');
-        const groupByEl = document.getElementById('group-by');
+        const startDateEl = document.getElementById('startDate');
+        const endDateEl = document.getElementById('endDate');
+        const groupByEl = document.getElementById('groupBy');
 
         if (startDateEl) {
             startDateEl.addEventListener('change', () => {
@@ -324,39 +324,59 @@ class TrendAnalysisApp {
             });
         }
 
-        // 重置按钮
-        const resetBtns = document.querySelectorAll('[id$="-reset"]');
-        resetBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const chartType = btn.id.replace('-reset', '');
-                this.resetChartFilter(chartType);
+        // 应用筛选按钮
+        const applyBtn = document.getElementById('applyFilters');
+        if (applyBtn) {
+            applyBtn.addEventListener('click', () => {
+                this.renderAllCharts();
             });
-        });
+        }
+
+        // 重置筛选按钮
+        const resetBtn = document.getElementById('resetFilters');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                this.resetAllFilters();
+            });
+        }
+
+        // 重置图表按钮
+        const resetStationBtn = document.getElementById('resetStationChart');
+        const resetCustomerBtn = document.getElementById('resetCustomerChart');
+        const resetSatelliteBtn = document.getElementById('resetSatelliteChart');
+        const resetTypeBtn = document.getElementById('resetTypeChart');
+        const resetStatusBtn = document.getElementById('resetStatusChart');
+
+        if (resetStationBtn) resetStationBtn.addEventListener('click', () => this.resetChartFilter('station'));
+        if (resetCustomerBtn) resetCustomerBtn.addEventListener('click', () => this.resetChartFilter('customer'));
+        if (resetSatelliteBtn) resetSatelliteBtn.addEventListener('click', () => this.resetChartFilter('satellite'));
+        if (resetTypeBtn) resetTypeBtn.addEventListener('click', () => this.resetChartFilter('type'));
+        if (resetStatusBtn) resetStatusBtn.addEventListener('click', () => this.resetChartFilter('status'));
 
         // 数据标签复选框
-        const dataLabelCheckboxes = document.querySelectorAll('[id$="-data-labels"]');
-        dataLabelCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', (e) => {
-                const chartType = checkbox.id.replace('-data-labels', '');
-                this.toggleDataLabels(chartType, checkbox.checked);
-            });
-        });
+        const showStationLabels = document.getElementById('showStationLabels');
+        const showCustomerLabels = document.getElementById('showCustomerLabels');
+        const showSatelliteLabels = document.getElementById('showSatelliteLabels');
+        const showTypeLabels = document.getElementById('showTypeLabels');
+        const showStatusLabels = document.getElementById('showStatusLabels');
 
-        // 下载图表按钮
-        const downloadChartBtns = document.querySelectorAll('[id$="-download-chart"]');
-        downloadChartBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const chartType = btn.id.replace('-download-chart', '');
-                this.downloadChart(chartType);
-            });
-        });
+        if (showStationLabels) showStationLabels.addEventListener('change', (e) => this.toggleDataLabels('station', e.target.checked));
+        if (showCustomerLabels) showCustomerLabels.addEventListener('change', (e) => this.toggleDataLabels('customer', e.target.checked));
+        if (showSatelliteLabels) showSatelliteLabels.addEventListener('change', (e) => this.toggleDataLabels('satellite', e.target.checked));
+        if (showTypeLabels) showTypeLabels.addEventListener('change', (e) => this.toggleDataLabels('taskType', e.target.checked));
+        if (showStatusLabels) showStatusLabels.addEventListener('change', (e) => this.toggleDataLabels('taskStatus', e.target.checked));
 
-        // 下载数据按钮
-        const downloadDataBtns = document.querySelectorAll('[id$="-download-data"]');
-        downloadDataBtns.forEach(btn => {
+        // 下载按钮
+        const downloadBtns = document.querySelectorAll('.chart-download-btn');
+        downloadBtns.forEach(btn => {
             btn.addEventListener('click', () => {
-                const chartType = btn.id.replace('-download-data', '');
-                this.downloadData(chartType);
+                const chartName = btn.dataset.chart;
+                const type = btn.dataset.type;
+                if (type === 'image') {
+                    this.downloadChart(chartName);
+                } else if (type === 'csv') {
+                    this.downloadData(chartName);
+                }
             });
         });
 
@@ -367,10 +387,10 @@ class TrendAnalysisApp {
      * 初始化周期规则模态框
      */
     initCycleRulesModal() {
-        const settingsBtn = document.getElementById('cycle-settings-btn');
-        const modal = document.getElementById('cycle-modal');
-        const closeBtn = document.getElementById('cycle-modal-close');
-        const saveBtn = document.getElementById('cycle-modal-save');
+        const settingsBtn = document.getElementById('configGroupingBtn');
+        const modal = document.getElementById('groupingConfigModal');
+        const closeBtn = document.getElementById('closeConfigModal');
+        const saveBtn = document.getElementById('saveGroupingConfig');
 
         if (settingsBtn && modal) {
             settingsBtn.addEventListener('click', () => {
@@ -399,26 +419,7 @@ class TrendAnalysisApp {
      * 显示周期规则模态框
      */
     showCycleRulesModal() {
-        // 填充当前规则
-        const dayStartEl = document.getElementById('day-start');
-        const dayEndEl = document.getElementById('day-end');
-        const weekStartEl = document.getElementById('week-start');
-        const weekEndEl = document.getElementById('week-end');
-        const monthStartEl = document.getElementById('month-start');
-        const monthEndEl = document.getElementById('month-end');
-        const quarterStartEl = document.getElementById('quarter-start');
-        const quarterEndEl = document.getElementById('quarter-end');
-
-        if (dayStartEl) dayStartEl.value = this.cycleRules.day.start || '';
-        if (dayEndEl) dayEndEl.value = this.cycleRules.day.end || '';
-        if (weekStartEl) weekStartEl.value = this.cycleRules.week.start || '';
-        if (weekEndEl) weekEndEl.value = this.cycleRules.week.end || '';
-        if (monthStartEl) monthStartEl.value = this.cycleRules.month.start || '';
-        if (monthEndEl) monthEndEl.value = this.cycleRules.month.end || '';
-        if (quarterStartEl) quarterStartEl.value = this.cycleRules.quarter.start || '';
-        if (quarterEndEl) quarterEndEl.value = this.cycleRules.quarter.end || '';
-
-        const modal = document.getElementById('cycle-modal');
+        const modal = document.getElementById('groupingConfigModal');
         if (modal) modal.classList.remove('hidden');
     }
 
@@ -426,31 +427,29 @@ class TrendAnalysisApp {
      * 保存周期规则
      */
     saveCycleRules() {
-        const dayStartEl = document.getElementById('day-start');
-        const dayEndEl = document.getElementById('day-end');
-        const weekStartEl = document.getElementById('week-start');
-        const weekEndEl = document.getElementById('week-end');
-        const monthStartEl = document.getElementById('month-start');
-        const monthEndEl = document.getElementById('month-end');
-        const quarterStartEl = document.getElementById('quarter-start');
-        const quarterEndEl = document.getElementById('quarter-end');
+        const dayStart = document.getElementById('dayStart');
+        const weekStartDay = document.getElementById('weekStartDay');
+        const weekStartTime = document.getElementById('weekStartTime');
+        const monthStartDate = document.getElementById('monthStartDate');
+        const monthStartTime = document.getElementById('monthStartTime');
+        const quarterStartMonth = document.getElementById('quarterStartMonth');
+        const quarterStartTime = document.getElementById('quarterStartTime');
 
         this.cycleRules = {
             day: {
-                start: dayStartEl?.value || '',
-                end: dayEndEl?.value || ''
+                start: dayStart?.value || '00:00'
             },
             week: {
-                start: weekStartEl?.value || '',
-                end: weekEndEl?.value || ''
+                startDay: weekStartDay?.value || '1',
+                startTime: weekStartTime?.value || '00:00'
             },
             month: {
-                start: monthStartEl?.value || '',
-                end: monthEndEl?.value || ''
+                startDate: monthStartDate?.value || '1',
+                startTime: monthStartTime?.value || '00:00'
             },
             quarter: {
-                start: quarterStartEl?.value || '',
-                end: quarterEndEl?.value || ''
+                startMonth: quarterStartMonth?.value || '1',
+                startTime: quarterStartTime?.value || '00:00'
             }
         };
 
@@ -474,10 +473,10 @@ class TrendAnalysisApp {
 
         // 默认规则
         return {
-            day: { start: '', end: '' },
-            week: { start: '', end: '' },
-            month: { start: '', end: '' },
-            quarter: { start: '', end: '' }
+            day: { start: '00:00' },
+            week: { startDay: '1', startTime: '00:00' },
+            month: { startDate: '1', startTime: '00:00' },
+            quarter: { startMonth: '1', startTime: '00:00' }
         };
     }
 
@@ -731,6 +730,12 @@ class TrendAnalysisApp {
     async renderAllCharts() {
         console.log('🎨 开始渲染所有图表', this.currentFilters);
 
+        // 显示图表区域
+        const chartsSection = document.getElementById('chartsSection');
+        if (chartsSection) {
+            chartsSection.classList.remove('hidden');
+        }
+
         await Promise.all([
             this.renderStationChart(),
             this.renderCustomerChart(),
@@ -747,8 +752,8 @@ class TrendAnalysisApp {
      */
     async renderStationChart() {
         try {
-            const canvas = document.getElementById('station-chart');
-            const emptyState = document.getElementById('station-empty');
+            const canvas = document.getElementById('stationChart');
+            const emptyState = document.getElementById('stationChartEmpty');
             if (!canvas) return;
 
             this.showChartLoading('station');
@@ -804,8 +809,8 @@ class TrendAnalysisApp {
      */
     async renderCustomerChart() {
         try {
-            const canvas = document.getElementById('customer-chart');
-            const emptyState = document.getElementById('customer-empty');
+            const canvas = document.getElementById('customerChart');
+            const emptyState = document.getElementById('customerChartEmpty');
             if (!canvas) return;
 
             this.showChartLoading('customer');
@@ -856,8 +861,8 @@ class TrendAnalysisApp {
      */
     async renderSatelliteChart() {
         try {
-            const canvas = document.getElementById('satellite-chart');
-            const emptyState = document.getElementById('satellite-empty');
+            const canvas = document.getElementById('satelliteChart');
+            const emptyState = document.getElementById('satelliteChartEmpty');
             if (!canvas) return;
 
             this.showChartLoading('satellite');
@@ -908,11 +913,11 @@ class TrendAnalysisApp {
      */
     async renderTaskTypeChart() {
         try {
-            const canvas = document.getElementById('task-type-chart');
-            const emptyState = document.getElementById('task-type-empty');
+            const canvas = document.getElementById('typeChart');
+            const emptyState = document.getElementById('typeChartEmpty');
             if (!canvas) return;
 
-            this.showChartLoading('task-type');
+            this.showChartLoading('type');
 
             const result = await this.wsManager.queryStats('task_type_trend', {
                 ...this.currentFilters,
@@ -947,10 +952,10 @@ class TrendAnalysisApp {
                 if (emptyState) emptyState.classList.remove('hidden');
             }
 
-            this.hideChartLoading('task-type');
+            this.hideChartLoading('type');
         } catch (error) {
             console.error('❌ 渲染任务类型趋势图失败', error);
-            this.hideChartLoading('task-type');
+            this.hideChartLoading('type');
             this.showError('渲染任务类型趋势图失败');
         }
     }
@@ -960,11 +965,11 @@ class TrendAnalysisApp {
      */
     async renderTaskStatusChart() {
         try {
-            const canvas = document.getElementById('task-status-chart');
-            const emptyState = document.getElementById('task-status-empty');
+            const canvas = document.getElementById('statusChart');
+            const emptyState = document.getElementById('statusChartEmpty');
             if (!canvas) return;
 
-            this.showChartLoading('task-status');
+            this.showChartLoading('status');
 
             const result = await this.wsManager.queryStats('task_status_trend', {
                 ...this.currentFilters,
@@ -999,10 +1004,10 @@ class TrendAnalysisApp {
                 if (emptyState) emptyState.classList.remove('hidden');
             }
 
-            this.hideChartLoading('task-status');
+            this.hideChartLoading('status');
         } catch (error) {
             console.error('❌ 渲染任务结果状态趋势图失败', error);
-            this.hideChartLoading('task-status');
+            this.hideChartLoading('status');
             this.showError('渲染任务结果状态趋势图失败');
         }
     }
@@ -1055,6 +1060,40 @@ class TrendAnalysisApp {
     }
 
     /**
+     * 重置所有筛选器
+     */
+    resetAllFilters() {
+        this.syncLock = true;
+
+        // 重置所有筛选器
+        Object.keys(this.topFilters).forEach(key => {
+            if (this.topFilters[key]) {
+                this.topFilters[key].setSelectedValues([]);
+            }
+        });
+
+        Object.keys(this.chartFilters).forEach(key => {
+            if (this.chartFilters[key]) {
+                this.chartFilters[key].setSelectedValues([]);
+            }
+        });
+
+        // 重置筛选条件
+        this.currentFilters.stations = [];
+        this.currentFilters.customers = [];
+        this.currentFilters.satellites = [];
+        this.currentFilters.taskTypes = [];
+        this.currentFilters.taskStatuses = [];
+
+        this.syncLock = false;
+
+        // 重新加载选项并渲染
+        this.loadFilterOptions().then(() => {
+            this.triggerAutoApply();
+        });
+    }
+
+    /**
      * 重置图表筛选器
      */
     resetChartFilter(chartType) {
@@ -1062,8 +1101,8 @@ class TrendAnalysisApp {
             'station': 'stations',
             'customer': 'customers',
             'satellite': 'satellites',
-            'task-type': 'taskTypes',
-            'task-status': 'taskStatuses'
+            'type': 'taskTypes',
+            'status': 'taskStatuses'
         };
 
         const filterName = filterMap[chartType];
@@ -1098,50 +1137,26 @@ class TrendAnalysisApp {
     toggleDataLabels(chartType, show) {
         console.log(`🏷️ 切换数据标签: ${chartType}, 显示: ${show}`);
 
-        // 如果是全局切换（不指定图表类型）
-        if (!chartType) {
-            this.showDataLabels = show;
-
-            // 更新所有图表
-            Object.keys(this.charts).forEach(key => {
-                if (this.charts[key]) {
-                    this.charts[key].options.plugins.datalabels.display = show;
-                    this.charts[key].update();
-                }
-            });
-
-            return;
-        }
-
-        // 单个图表切换
-        const chartMap = {
-            'station': 'station',
-            'customer': 'customer',
-            'satellite': 'satellite',
-            'task-type': 'taskType',
-            'task-status': 'taskStatus'
-        };
-
-        const chartKey = chartMap[chartType];
-        if (chartKey && this.charts[chartKey]) {
-            this.charts[chartKey].options.plugins.datalabels.display = show;
-            this.charts[chartKey].update();
+        const chart = this.charts[chartType];
+        if (chart) {
+            chart.options.plugins.datalabels.display = show;
+            chart.update();
         }
     }
 
     /**
      * 下载图表（PNG）
      */
-    downloadChart(chartType) {
+    downloadChart(chartName) {
         const chartMap = {
-            'station': { chart: this.charts.station, name: '测站趋势' },
-            'customer': { chart: this.charts.customer, name: '客户趋势' },
-            'satellite': { chart: this.charts.satellite, name: '卫星趋势' },
-            'task-type': { chart: this.charts.taskType, name: '任务类型趋势' },
-            'task-status': { chart: this.charts.taskStatus, name: '任务结果状态趋势' }
+            'stationChart': { chart: this.charts.station, name: '测站趋势' },
+            'customerChart': { chart: this.charts.customer, name: '客户趋势' },
+            'satelliteChart': { chart: this.charts.satellite, name: '卫星趋势' },
+            'typeChart': { chart: this.charts.taskType, name: '任务类型趋势' },
+            'statusChart': { chart: this.charts.taskStatus, name: '任务结果状态趋势' }
         };
 
-        const chartInfo = chartMap[chartType];
+        const chartInfo = chartMap[chartName];
         if (!chartInfo || !chartInfo.chart) {
             console.warn('图表不存在或未渲染');
             return;
@@ -1159,16 +1174,16 @@ class TrendAnalysisApp {
     /**
      * 下载数据（CSV）
      */
-    downloadData(chartType) {
+    downloadData(chartName) {
         const chartMap = {
-            'station': { chart: this.charts.station, name: '测站趋势' },
-            'customer': { chart: this.charts.customer, name: '客户趋势' },
-            'satellite': { chart: this.charts.satellite, name: '卫星趋势' },
-            'task-type': { chart: this.charts.taskType, name: '任务类型趋势' },
-            'task-status': { chart: this.charts.taskStatus, name: '任务结果状态趋势' }
+            'stationChart': { chart: this.charts.station, name: '测站趋势' },
+            'customerChart': { chart: this.charts.customer, name: '客户趋势' },
+            'satelliteChart': { chart: this.charts.satellite, name: '卫星趋势' },
+            'typeChart': { chart: this.charts.taskType, name: '任务类型趋势' },
+            'statusChart': { chart: this.charts.taskStatus, name: '任务结果状态趋势' }
         };
 
-        const chartInfo = chartMap[chartType];
+        const chartInfo = chartMap[chartName];
         if (!chartInfo || !chartInfo.chart) {
             console.warn('图表不存在或未渲染');
             return;
@@ -1185,8 +1200,8 @@ class TrendAnalysisApp {
      * 显示加载中
      */
     showLoading(message = '加载中...') {
-        const loadingEl = document.getElementById('loading-alert');
-        const messageEl = document.getElementById('loading-message');
+        const loadingEl = document.getElementById('loadingAlert');
+        const messageEl = document.getElementById('loadingMessage');
         if (loadingEl && messageEl) {
             messageEl.textContent = message;
             loadingEl.classList.remove('hidden');
@@ -1197,7 +1212,7 @@ class TrendAnalysisApp {
      * 隐藏加载中
      */
     hideLoading() {
-        const loadingEl = document.getElementById('loading-alert');
+        const loadingEl = document.getElementById('loadingAlert');
         if (loadingEl) {
             loadingEl.classList.add('hidden');
         }
@@ -1207,7 +1222,7 @@ class TrendAnalysisApp {
      * 显示图表加载中
      */
     showChartLoading(chartType) {
-        const canvas = document.getElementById(`${chartType}-chart`);
+        const canvas = document.getElementById(`${chartType}Chart`);
         if (canvas) {
             canvas.style.opacity = '0.5';
         }
@@ -1217,7 +1232,7 @@ class TrendAnalysisApp {
      * 隐藏图表加载中
      */
     hideChartLoading(chartType) {
-        const canvas = document.getElementById(`${chartType}-chart`);
+        const canvas = document.getElementById(`${chartType}Chart`);
         if (canvas) {
             canvas.style.opacity = '1';
         }
@@ -1227,8 +1242,8 @@ class TrendAnalysisApp {
      * 显示错误
      */
     showError(message) {
-        const errorEl = document.getElementById('error-alert');
-        const messageEl = document.getElementById('error-message');
+        const errorEl = document.getElementById('errorAlert');
+        const messageEl = document.getElementById('errorMessage');
         if (errorEl && messageEl) {
             messageEl.textContent = message;
             errorEl.classList.remove('hidden');
