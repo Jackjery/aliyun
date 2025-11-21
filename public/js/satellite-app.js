@@ -55,10 +55,15 @@ class SatelliteApp {
     initDatePickers() {
         const endDate = new Date();
         const startDate = new Date();
-        startDate.setMonth(startDate.getMonth() - 3); // 默认最近3个月
+        startDate.setMonth(startDate.getMonth() - 1); // 默认往前推1个月
 
         document.getElementById('startDate').valueAsDate = startDate;
         document.getElementById('endDate').valueAsDate = endDate;
+
+        console.log('📅 日期初始化:', {
+            startDate: startDate.toLocaleDateString(),
+            endDate: endDate.toLocaleDateString()
+        });
     }
 
     /**
@@ -173,13 +178,17 @@ class SatelliteApp {
         const endDateInput = document.getElementById('endDate');
         if (startDateInput && endDateInput) {
             const autoRender = () => {
-                const startDate = startDateInput.value;
-                const endDate = endDateInput.value;
-                // 只有当开始和结束日期都选择后才自动渲染
-                if (startDate && endDate) {
-                    this.showInfoToast('正在重新渲染图表...');
-                    setTimeout(() => this.generateChart(), 100);
-                }
+                // 使用 requestAnimationFrame 确保 DOM 已更新
+                requestAnimationFrame(() => {
+                    const startDate = startDateInput.value;
+                    const endDate = endDateInput.value;
+                    // 只有当开始和结束日期都选择后才自动渲染
+                    if (startDate && endDate) {
+                        console.log('🔄 自动渲染图表:', { startDate, endDate });
+                        this.showInfoToast('正在重新渲染图表...');
+                        this.generateChart();
+                    }
+                });
             };
             startDateInput.addEventListener('change', autoRender);
             endDateInput.addEventListener('change', autoRender);
@@ -189,12 +198,15 @@ class SatelliteApp {
         const groupBySelect = document.getElementById('groupBy');
         if (groupBySelect) {
             groupBySelect.addEventListener('change', () => {
-                const startDate = document.getElementById('startDate').value;
-                const endDate = document.getElementById('endDate').value;
-                if (startDate && endDate) {
-                    this.showInfoToast('统计周期已更改，正在重新渲染图表...');
-                    setTimeout(() => this.generateChart(), 100);
-                }
+                requestAnimationFrame(() => {
+                    const startDate = document.getElementById('startDate').value;
+                    const endDate = document.getElementById('endDate').value;
+                    if (startDate && endDate) {
+                        console.log('🔄 统计周期已更改，重新渲染:', { startDate, endDate, groupBy: groupBySelect.value });
+                        this.showInfoToast('统计周期已更改，正在重新渲染图表...');
+                        this.generateChart();
+                    }
+                });
             });
         }
     }
@@ -1148,21 +1160,39 @@ class SatelliteApp {
      * 切换数据标签显示
      */
     toggleDataLabels(show) {
-        if (!this.charts.main) {
-            console.warn('⚠️ 图表未创建，无法切换数据标签');
-            return;
+        console.log(`📊 切换数据标签: ${show ? '显示' : '隐藏'}`);
+
+        // 更新主图表
+        if (this.charts.main) {
+            this.charts.main.data.datasets.forEach(dataset => {
+                if (dataset.datalabels) {
+                    dataset.datalabels.display = show;
+                }
+            });
+            this.charts.main.update();
         }
 
-        // 更新每个数据集的datalabels配置
-        this.charts.main.data.datasets.forEach(dataset => {
-            if (dataset.datalabels) {
-                dataset.datalabels.display = show;
-            }
-        });
+        // 更新卫星趋势图
+        if (this.charts.satellite) {
+            this.charts.satellite.data.datasets.forEach(dataset => {
+                if (dataset.datalabels) {
+                    dataset.datalabels.display = show;
+                }
+            });
+            this.charts.satellite.update();
+        }
 
-        this.charts.main.update();
+        // 更新客户趋势图
+        if (this.charts.customer) {
+            this.charts.customer.data.datasets.forEach(dataset => {
+                if (dataset.datalabels) {
+                    dataset.datalabels.display = show;
+                }
+            });
+            this.charts.customer.update();
+        }
 
-        console.log(`📊 数据标签${show ? '已显示' : '已隐藏'}`);
+        console.log(`✅ 所有图表数据标签${show ? '已显示' : '已隐藏'}`);
     }
 
     /**
