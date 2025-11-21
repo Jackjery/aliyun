@@ -610,7 +610,7 @@ class TrendAnalysisApp {
      */
     async cascadeFilterOptions(changedFilterName) {
         try {
-            // 查询级联后的选项
+            // 查询级联后的选项（filter_options 使用不同的参数格式）
             const result = await this.wsManager.queryStats('filter_options', {
                 startDate: this.currentFilters.startDate,
                 endDate: this.currentFilters.endDate,
@@ -779,8 +779,17 @@ class TrendAnalysisApp {
             this.showChartLoading('station');
 
             const result = await this.wsManager.queryStats('station_trend', {
-                ...this.currentFilters,
-                cycleRules: this.cycleRules
+                startDate: this.currentFilters.startDate,
+                endDate: this.currentFilters.endDate,
+                groupBy: this.currentFilters.groupBy,
+                groupingRule: this.cycleRules[this.currentFilters.groupBy],
+                filters: {
+                    stations: this.currentFilters.stations,
+                    customers: this.currentFilters.customers,
+                    satellites: this.currentFilters.satellites,
+                    taskTypes: this.currentFilters.taskTypes,
+                    taskStatuses: this.currentFilters.taskStatuses
+                }
             });
 
             if (result && result.records && result.records.length > 0) {
@@ -835,9 +844,18 @@ class TrendAnalysisApp {
 
             this.showChartLoading('customer');
 
-            const result = await this.wsManager.queryStats('customer_trend', {
-                ...this.currentFilters,
-                cycleRules: this.cycleRules
+            const result = await this.wsManager.queryStats('customer_dimension_trend', {
+                startDate: this.currentFilters.startDate,
+                endDate: this.currentFilters.endDate,
+                groupBy: this.currentFilters.groupBy,
+                groupingRule: this.cycleRules[this.currentFilters.groupBy],
+                filters: {
+                    stations: this.currentFilters.stations,
+                    customers: this.currentFilters.customers,
+                    satellites: this.currentFilters.satellites,
+                    taskTypes: this.currentFilters.taskTypes,
+                    taskStatuses: this.currentFilters.taskStatuses
+                }
             });
 
             if (result && result.records && result.records.length > 0) {
@@ -887,9 +905,18 @@ class TrendAnalysisApp {
 
             this.showChartLoading('satellite');
 
-            const result = await this.wsManager.queryStats('satellite_trend', {
-                ...this.currentFilters,
-                cycleRules: this.cycleRules
+            const result = await this.wsManager.queryStats('satellite_dimension_trend', {
+                startDate: this.currentFilters.startDate,
+                endDate: this.currentFilters.endDate,
+                groupBy: this.currentFilters.groupBy,
+                groupingRule: this.cycleRules[this.currentFilters.groupBy],
+                filters: {
+                    stations: this.currentFilters.stations,
+                    customers: this.currentFilters.customers,
+                    satellites: this.currentFilters.satellites,
+                    taskTypes: this.currentFilters.taskTypes,
+                    taskStatuses: this.currentFilters.taskStatuses
+                }
             });
 
             if (result && result.records && result.records.length > 0) {
@@ -940,8 +967,17 @@ class TrendAnalysisApp {
             this.showChartLoading('type');
 
             const result = await this.wsManager.queryStats('task_type_trend', {
-                ...this.currentFilters,
-                cycleRules: this.cycleRules
+                startDate: this.currentFilters.startDate,
+                endDate: this.currentFilters.endDate,
+                groupBy: this.currentFilters.groupBy,
+                groupingRule: this.cycleRules[this.currentFilters.groupBy],
+                filters: {
+                    stations: this.currentFilters.stations,
+                    customers: this.currentFilters.customers,
+                    satellites: this.currentFilters.satellites,
+                    taskTypes: this.currentFilters.taskTypes,
+                    taskStatuses: this.currentFilters.taskStatuses
+                }
             });
 
             if (result && result.records && result.records.length > 0) {
@@ -992,8 +1028,17 @@ class TrendAnalysisApp {
             this.showChartLoading('status');
 
             const result = await this.wsManager.queryStats('task_status_trend', {
-                ...this.currentFilters,
-                cycleRules: this.cycleRules
+                startDate: this.currentFilters.startDate,
+                endDate: this.currentFilters.endDate,
+                groupBy: this.currentFilters.groupBy,
+                groupingRule: this.cycleRules[this.currentFilters.groupBy],
+                filters: {
+                    stations: this.currentFilters.stations,
+                    customers: this.currentFilters.customers,
+                    satellites: this.currentFilters.satellites,
+                    taskTypes: this.currentFilters.taskTypes,
+                    taskStatuses: this.currentFilters.taskStatuses
+                }
             });
 
             if (result && result.records && result.records.length > 0) {
