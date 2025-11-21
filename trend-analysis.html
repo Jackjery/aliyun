@@ -114,20 +114,8 @@
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
-    <!-- SVG图标库 -->
+    <!-- SVG图标库（已内联到CSS中，无需额外加载） -->
     <div style="display:none" id="svg-sprite-container"></div>
-    <script>
-        (function() {
-            var xhr = new XMLHttpRequest();
-            xhr.open('GET', './public/icons/sprite.svg', true);
-            xhr.onload = function() {
-                if (xhr.status === 200) {
-                    document.getElementById('svg-sprite-container').innerHTML = xhr.responseText;
-                }
-            };
-            xhr.send();
-        })();
-    </script>
 
     <!-- 顶部导航 -->
     <header class="bg-white border-b border-gray-200">
