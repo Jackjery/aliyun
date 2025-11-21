@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据趋势分析 - 卫星任务数据分析平台</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="./public/css/output.css">
+    <link rel="stylesheet" href="./public/css/icons.css">
+    <link rel="stylesheet" href="./public/css/themes.css">
+
+    <!-- 配置文件 - 必须最先加载 -->
+    <script src="./public/js/config.js"></script>
+
+    <!-- 延迟加载的脚本 -->
+    <script src="./public/lib/chart.min.js" defer></script>
+    <script src="./public/lib/chartjs-plugin-datalabels.min.js" defer></script>
+
+    <style>
+        .filter-select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            transition: all 0.2s;
+        }
+        .filter-select:focus {
+            outline: none;
+            ring: 2px;
+            ring-color: rgba(22, 93, 255, 0.3);
+            border-color: #165DFF;
+        }
+        .chart-container {
+            height: 20rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            position: relative;
+            margin-bottom: 2rem;
+        }
+        .tab-item {
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab-item-active {
+            background-color: #165DFF;
+            color: white;
+        }
+        .tab-item-inactive {
+            background-color: #f3f4f6;
+            color: #374151;
+        }
+        .tab-item-inactive:hover {
+            background-color: #e5e7eb;
+        }
+        .dropdown-container {
+            position: relative;
+        }
+        .dropdown-content {
+            position: absolute;
+            z-index: 10;
+            width: 100%;
+            margin-top: 0.25rem;
+            background-color: white;
+            border-radius: 0.375rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            max-height: 15rem;
+            overflow-y: auto;
+        }
+        .multiselect-checkbox {
+            margin-right: 0.5rem;
+            height: 1rem;
+            width: 1rem;
+            color: #165DFF;
+            border-color: #d1d5db;
+            border-radius: 0.25rem;
+        }
+        .selected-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.25rem;
+        }
+        .selected-tag {
+            background-color: rgba(22, 93, 255, 0.1);
+            color: #165DFF;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+        }
+        .tag-remove {
+            margin-left: 0.25rem;
+            cursor: pointer;
+        }
+        .tag-remove:hover {
+            color: rgba(22, 93, 255, 0.8);
+        }
+        .select-all-item {
+            padding: 0.5rem 1rem;
+            border-bottom: 1px solid #f3f4f6;
+            font-weight: 500;
+            color: #165DFF;
+            cursor: pointer;
+        }
+        .select-all-item:hover {
+            background-color: rgba(22, 93, 255, 0.05);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- SVG图标库 -->
+    <div style="display:none" id="svg-sprite-container"></div>
+    <script>
+        (function() {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', './public/icons/sprite.svg', true);
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    document.getElementById('svg-sprite-container').innerHTML = xhr.responseText;
+                }
+            };
+            xhr.send();
+        })();
+    </script>
+
+    <!-- 顶部导航 -->
+    <header class="bg-white border-b border-gray-200">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <svg class="icon icon-xl text-primary"><use href="#icon-line-chart"/></svg>
+                <h1 class="text-xl font-bold text-primary">卫星任务数据分析平台</h1>
+            </div>
+
+            <nav class="hidden md:flex items-center space-x-6">
+                <a href="index.html" class="text-gray-600 hover:text-primary transition-colors px-1 py-5">首页</a>
+                <a href="trend-analysis.html" class="text-primary font-medium border-b-2 border-primary px-1 py-5">数据趋势分析</a>
+                <a href="data-distribution.html" class="text-gray-600 hover:text-primary transition-colors px-1 py-5">数据分布</a>
+                <a href="circle-warning.html" class="text-gray-600 hover:text-primary transition-colors px-1 py-5">数据预警</a>
+            </nav>
+
+            <button class="md:hidden text-gray-600 hover:text-primary" id="mobileMenuBtn">
+                <svg class="icon icon-xl"><use href="#icon-bars"/></svg>
+            </button>
+        </div>
+
+        <div class="md:hidden hidden bg-white border-t border-gray-200" id="mobileMenu">
+            <div class="container mx-auto px-4 py-2">
+                <a href="index.html" class="block py-3 text-gray-600 hover:text-primary">首页</a>
+                <a href="trend-analysis.html" class="block py-3 text-primary font-medium">数据趋势分析</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-6">
+        <h2 class="text-xl font-bold mb-6 text-gray-800">数据趋势分析</h2>
+
+        <!-- 加载状态 -->
+        <div id="loadingAlert" class="mb-6 p-3 bg-primary/10 text-primary rounded-lg flex items-center hidden">
+            <svg class="icon icon-spin mr-2"><use href="#icon-spinner"/></svg>
+            <span id="loadingMessage">正在加载数据...</span>
+        </div>
+
+        <!-- 错误提示 -->
+        <div id="errorAlert" class="bg-danger/10 text-danger p-4 rounded-lg mb-6 hidden">
+            <svg class="icon mr-2"><use href="#icon-exclamation-circle"/></svg>
+            <span id="errorMessage">操作失败</span>
+        </div>
+
+        <!-- 筛选条件区域 -->
+        <section id="filterSection" class="mb-8 bg-white rounded-lg p-6 card-shadow">
+            <h3 class="text-lg font-semibold mb-4">筛选条件</h3>
+
+            <!-- 时间范围和周期设置 -->
+            <div class="grid grid-cols-5 gap-4 mb-6 pb-6 border-b border-gray-100">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">统计开始日期</label>
+                    <input type="date" id="startDate" class="filter-select">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">统计结束日期</label>
+                    <input type="date" id="endDate" class="filter-select">
+                </div>
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-sm font-medium text-gray-700">统计周期</label>
+                        <button id="configGroupingBtn" class="text-gray-500 hover:text-primary transition-colors p-1" title="配置周期规则">
+                            <svg class="icon"><use href="#icon-cog"/></svg>
+                        </button>
+                    </div>
+                    <select id="groupBy" class="filter-select">
+                        <option value="day">按日</option>
+                        <option value="week">按周</option>
+                        <option value="month">按月</option>
+                        <option value="quarter">按季度</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <button id="resetFilters" class="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">
+                        重置筛选
+                    </button>
+                </div>
+                <div class="flex items-end">
+                    <button id="applyFilters" class="w-full px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors">
+                        应用筛选并生成图表
+                    </button>
+                </div>
+            </div>
+
+            <!-- 多条件筛选区域 -->
+            <div class="grid grid-cols-5 gap-4 mb-4">
+                <!-- 测站名称筛选 -->
+                <div class="dropdown-container">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">测站名称 <span class="text-xs text-gray-500">(可多选)</span></label>
+                    <div class="flex items-center justify-between filter-select cursor-pointer" id="stationDropdown">
+                        <span id="stationDisplay">请选择测站</span>
+                        <svg class="icon icon-sm"><use href="#icon-chevron-down"/></svg>
+                    </div>
+                    <div class="selected-tags" id="stationTags"></div>
+                    <div class="dropdown-content hidden" id="stationOptions">
+                        <div class="p-2 border-b border-gray-100">
+                            <input type="text" placeholder="搜索测站..." class="w-full p-1 text-sm border border-gray-200 rounded" id="stationSearch">
+                        </div>
+                        <div class="select-all-item" id="selectAllStations">
+                            <svg class="icon mr-2"><use href="#icon-check-square-o"/></svg>全选
+                        </div>
+                    </div>
+                    <input type="hidden" id="stationValue" value="">
+                </div>
+
+                <!-- 客户名称筛选 -->
+                <div class="dropdown-container">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">客户名称 <span class="text-xs text-gray-500">(可多选)</span></label>
+                    <div class="flex items-center justify-between filter-select cursor-pointer" id="customerDropdown">
+                        <span id="customerDisplay">请选择客户</span>
+                        <svg class="icon icon-sm"><use href="#icon-chevron-down"/></svg>
+                    </div>
+                    <div class="selected-tags" id="customerTags"></div>
+                    <div class="dropdown-content hidden" id="customerOptions">
+                        <div class="p-2 border-b border-gray-100">
+                            <input type="text" placeholder="搜索客户..." class="w-full p-1 text-sm border border-gray-200 rounded" id="customerSearch">
+                        </div>
+                        <div class="select-all-item" id="selectAllCustomers">
+                            <svg class="icon mr-2"><use href="#icon-check-square-o"/></svg>全选
+                        </div>
+                    </div>
+                    <input type="hidden" id="customerValue" value="">
+                </div>
+
+                <!-- 卫星名称筛选 -->
+                <div class="dropdown-container">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">卫星名称 <span class="text-xs text-gray-500">(可多选)</span></label>
+                    <div class="flex items-center justify-between filter-select cursor-pointer" id="satelliteDropdown">
+                        <span id="satelliteDisplay">请选择卫星</span>
+                        <svg class="icon icon-sm"><use href="#icon-chevron-down"/></svg>
+                    </div>
+                    <div class="selected-tags" id="satelliteTags"></div>
+                    <div class="dropdown-content hidden" id="satelliteOptions">
+                        <div class="p-2 border-b border-gray-100">
+                            <input type="text" placeholder="搜索卫星..." class="w-full p-1 text-sm border border-gray-200 rounded" id="satelliteSearch">
+                        </div>
+                        <div class="select-all-item" id="selectAllSatellites">
+                            <svg class="icon mr-2"><use href="#icon-check-square-o"/></svg>全选
+                        </div>
+                    </div>
+                    <input type="hidden" id="satelliteValue" value="">
+                </div>
+
+                <!-- 任务类型筛选 -->
+                <div class="dropdown-container">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">任务类型 <span class="text-xs text-gray-500">(可多选)</span></label>
+                    <div class="flex items-center justify-between filter-select cursor-pointer" id="typeDropdown">
+                        <span id="typeDisplay">请选择任务类型</span>
+                        <svg class="icon icon-sm"><use href="#icon-chevron-down"/></svg>
+                    </div>
+                    <div class="selected-tags" id="typeTags"></div>
+                    <div class="dropdown-content hidden" id="typeOptions">
+                        <div class="p-2 border-b border-gray-100">
+                            <input type="text" placeholder="搜索类型..." class="w-full p-1 text-sm border border-gray-200 rounded" id="typeSearch">
+                        </div>
+                        <div class="select-all-item" id="selectAllTypes">
+                            <svg class="icon mr-2"><use href="#icon-check-square-o"/></svg>全选
+                        </div>
+                    </div>
+                    <input type="hidden" id="typeValue" value="">
+                </div>
+
+                <!-- 任务结果状态筛选 -->
+                <div class="dropdown-container">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">任务结果状态 <span class="text-xs text-gray-500">(可多选)</span></label>
+                    <div class="flex items-center justify-between filter-select cursor-pointer" id="statusDropdown">
+                        <span id="statusDisplay">请选择任务状态</span>
+                        <svg class="icon icon-sm"><use href="#icon-chevron-down"/></svg>
+                    </div>
+                    <div class="selected-tags" id="statusTags"></div>
+                    <div class="dropdown-content hidden" id="statusOptions">
+                        <div class="p-2 border-b border-gray-100">
+                            <input type="text" placeholder="搜索状态..." class="w-full p-1 text-sm border border-gray-200 rounded" id="statusSearch">
+                        </div>
+                        <div class="select-all-item" id="selectAllStatuses">
+                            <svg class="icon mr-2"><use href="#icon-check-square-o"/></svg>全选
+                        </div>
+                    </div>
+                    <input type="hidden" id="statusValue" value="">
+                </div>
+            </div>
+        </section>
+
+        <!-- 图表展示区域 -->
+        <section id="chartsSection" class="space-y-8 hidden">
+            <!-- 测站趋势图 -->
+            <div class="bg-white rounded-lg p-6 card-shadow">
+                <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
+                    <span>测站名称趋势分析</span>
+                    <div class="flex items-center gap-3">
+                        <div class="dropdown-container relative">
+                            <div class="flex items-center justify-between filter-select cursor-pointer min-w-[180px]" id="stationChartDropdown">
+                                <span id="stationChartDisplay" class="text-sm truncate">请选择测站</span>
+                                <svg class="icon icon-sm ml-2"><use href="#icon-chevron-down"/></svg>
+                            </div>
+                            <div class="selected-tags" id="stationChartTags"></div>
+                            <div class="dropdown-content hidden absolute top-full left-0 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[200px]" id="stationChartOptions">
+                                <div class="p-2 border-b border-gray-100">
+                                    <input type="text" placeholder="搜索测站..." class="w-full p-1 text-sm border border-gray-200 rounded" id="stationChartSearch">
+                                </div>
+                                <div class="select-all-item" id="selectAllStationChart">
+                                    <svg class="icon mr-2"><use href="#icon-check-square-o"/></svg>全选
+                                </div>
+                            </div>
+                            <input type="hidden" id="stationChartValue" value="">
+                        </div>
+
+                        <button id="resetStationChart" class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition" title="重置当前图表筛选">
+                            <svg class="icon"><use href="#icon-refresh"/></svg>
+                        </button>
+
+                        <div class="h-4 w-px bg-gray-300"></div>
+
+                        <label class="flex items-center px-2 py-1 bg-secondary/10 text-secondary rounded cursor-pointer hover:bg-secondary/20 transition">
+                            <input type="checkbox" id="showStationLabels" class="mr-2 w-4 h-4">
+                            <span class="text-sm font-medium">显示数据标签</span>
+                        </label>
+                        <button class="chart-download-btn px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition"
+                                data-chart="stationChart" data-type="image">
+                            <svg class="icon mr-1"><use href="#icon-download"/></svg>下载图表
+                        </button>
+                        <button class="chart-download-btn px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition"
+                                data-chart="stationChart" data-type="csv">
+                            <svg class="icon mr-1"><use href="#icon-table"/></svg>下载数据
+                        </button>
+                    </div>
+                </h3>
+
+                <div class="chart-container">
+                    <canvas id="stationChart"></canvas>
+                    <div class="absolute inset-0 flex items-center justify-center text-gray-500 hidden" id="stationChartEmpty">
+                        <div class="text-center">
+                            <svg class="icon icon-2xl mb-2"><use href="#icon-line-chart"/></svg>
+                            <p>没有符合条件的数据</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 客户趋势图 -->
+            <div class="bg-white rounded-lg p-6 card-shadow">
+                <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
+                    <span>客户名称趋势分析</span>
+                    <div class="flex items-center gap-4">
+                        <div class="dropdown-container relative" style="min-width: 160px;">
+                            <div class="flex items-center justify-between filter-select cursor-pointer text-sm" id="customerChartDropdown">
+                                <span id="customerChartDisplay" class="truncate" style="max-width: 120px;">请选择客户</span>
+                                <svg class="icon icon-sm ml-2"><use href="#icon-chevron-down"/></svg>
+                            </div>
+                            <div class="selected-tags" id="customerChartTags"></div>
+                            <div class="dropdown-content hidden absolute top-full left-0 z-50" id="customerChartOptions" style="min-width: 200px;">
+                                <div class="p-2 border-b border-gray-100">
+                                    <input type="text" placeholder="搜索客户..." class="w-full p-1 text-sm border border-gray-200 rounded" id="customerChartSearch">
+                                </div>
+                                <div class="select-all-item" id="selectAllCustomerChart">
+                                    <svg class="icon mr-2"><use href="#icon-check-square-o"/></svg>全选
+                                </div>
+                            </div>
+                            <input type="hidden" id="customerChartValue" value="">
+                        </div>
+
+                        <button id="resetCustomerChart" class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition">
+                            <svg class="icon mr-1"><use href="#icon-refresh"/></svg>重置筛选
+                        </button>
+
+                        <div class="w-px h-6 bg-gray-300"></div>
+
+                        <div class="flex gap-2">
+                            <label class="flex items-center px-2 py-1 bg-secondary/10 text-secondary rounded cursor-pointer hover:bg-secondary/20 transition">
+                                <input type="checkbox" id="showCustomerLabels" class="mr-2 w-4 h-4">
+                                <span class="text-sm font-medium">显示数据标签</span>
+                            </label>
+                            <button class="chart-download-btn px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition"
+                                    data-chart="customerChart" data-type="image">
+                                <svg class="icon mr-1"><use href="#icon-download"/></svg>下载图表
+                            </button>
+                            <button class="chart-download-btn px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition"
+                                    data-chart="customerChart" data-type="csv">
+                                <svg class="icon mr-1"><use href="#icon-table"/></svg>下载数据
+                            </button>
+                        </div>
+                    </div>
+                </h3>
+
+                <div class="chart-container">
+                    <canvas id="customerChart"></canvas>
+                    <div class="absolute inset-0 flex items-center justify-center text-gray-500 hidden" id="customerChartEmpty">
+                        <div class="text-center">
+                            <svg class="icon icon-2xl mb-2"><use href="#icon-line-chart"/></svg>
+                            <p>没有符合条件的数据</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 卫星趋势图 -->
+            <div class="bg-white rounded-lg p-6 card-shadow">
+                <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
+                    <span>卫星名称趋势分析</span>
+                    <div class="flex items-center gap-4">
+                        <div class="dropdown-container relative" style="min-width: 160px;">
+                            <div class="flex items-center justify-between filter-select cursor-pointer text-sm" id="satelliteChartDropdown">
+                                <span id="satelliteChartDisplay" class="truncate" style="max-width: 120px;">请选择卫星名称</span>
+                                <svg class="icon icon-sm ml-2"><use href="#icon-chevron-down"/></svg>
+                            </div>
+                            <div class="selected-tags" id="satelliteChartTags"></div>
+                            <div class="dropdown-content hidden absolute top-full left-0 z-50" id="satelliteChartOptions" style="min-width: 200px;">
+                                <div class="p-2">
+                                    <input type="text" placeholder="搜索卫星..." class="w-full px-3 py-1 border border-gray-300 rounded text-sm" id="satelliteChartSearch">
+                                </div>
+                                <div class="select-all-item" id="selectAllSatelliteChart">
+                                    <svg class="icon mr-2"><use href="#icon-check-square-o"/></svg>全选
+                                </div>
+                            </div>
+                            <input type="hidden" id="satelliteChartValue" value="">
+                        </div>
+
+                        <button id="resetSatelliteChart" class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition">
+                            <svg class="icon mr-1"><use href="#icon-refresh"/></svg>重置筛选
+                        </button>
+
+                        <div class="w-px h-6 bg-gray-300"></div>
+
+                        <div class="flex gap-2">
+                            <label class="flex items-center px-2 py-1 bg-secondary/10 text-secondary rounded cursor-pointer hover:bg-secondary/20 transition">
+                                <input type="checkbox" id="showSatelliteLabels" class="mr-2 w-4 h-4">
+                                <span class="text-sm font-medium">显示数据标签</span>
+                            </label>
+                            <button class="chart-download-btn px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition"
+                                    data-chart="satelliteChart" data-type="image">
+                                <svg class="icon mr-1"><use href="#icon-download"/></svg>下载图表
+                            </button>
+                            <button class="chart-download-btn px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition"
+                                    data-chart="satelliteChart" data-type="csv">
+                                <svg class="icon mr-1"><use href="#icon-table"/></svg>下载数据
+                            </button>
+                        </div>
+                    </div>
+                </h3>
+
+                <div class="chart-container">
+                    <canvas id="satelliteChart"></canvas>
+                    <div class="absolute inset-0 flex items-center justify-center text-gray-500 hidden" id="satelliteChartEmpty">
+                        <div class="text-center">
+                            <svg class="icon icon-2xl mb-2"><use href="#icon-line-chart"/></svg>
+                            <p>没有符合条件的数据</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 任务类型趋势图 -->
+            <div class="bg-white rounded-lg p-6 card-shadow">
+                <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
+                    <span>任务类型趋势分析</span>
+                    <div class="flex items-center gap-4">
+                        <div class="dropdown-container relative" style="min-width: 160px;">
+                            <div class="flex items-center justify-between filter-select cursor-pointer text-sm" id="typeChartDropdown">
+                                <span id="typeChartDisplay" class="truncate" style="max-width: 120px;">请选择任务类型</span>
+                                <svg class="icon icon-sm ml-2"><use href="#icon-chevron-down"/></svg>
+                            </div>
+                            <div class="selected-tags" id="typeChartTags"></div>
+                            <div class="dropdown-content hidden absolute top-full left-0 z-50" id="typeChartOptions" style="min-width: 200px;">
+                                <div class="p-2">
+                                    <input type="text" placeholder="搜索类型..." class="w-full px-3 py-1 border border-gray-300 rounded text-sm" id="typeChartSearch">
+                                </div>
+                                <div class="select-all-item" id="selectAllTypeChart">
+                                    <svg class="icon mr-2"><use href="#icon-check-square-o"/></svg>全选
+                                </div>
+                            </div>
+                            <input type="hidden" id="typeChartValue" value="">
+                        </div>
+
+                        <button id="resetTypeChart" class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition">
+                            <svg class="icon mr-1"><use href="#icon-refresh"/></svg>重置筛选
+                        </button>
+
+                        <div class="w-px h-6 bg-gray-300"></div>
+
+                        <div class="flex gap-2">
+                            <label class="flex items-center px-2 py-1 bg-secondary/10 text-secondary rounded cursor-pointer hover:bg-secondary/20 transition">
+                                <input type="checkbox" id="showTypeLabels" class="mr-2 w-4 h-4">
+                                <span class="text-sm font-medium">显示数据标签</span>
+                            </label>
+                            <button class="chart-download-btn px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition"
+                                    data-chart="typeChart" data-type="image">
+                                <svg class="icon mr-1"><use href="#icon-download"/></svg>下载图表
+                            </button>
+                            <button class="chart-download-btn px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition"
+                                    data-chart="typeChart" data-type="csv">
+                                <svg class="icon mr-1"><use href="#icon-table"/></svg>下载数据
+                            </button>
+                        </div>
+                    </div>
+                </h3>
+
+                <div class="chart-container">
+                    <canvas id="typeChart"></canvas>
+                    <div class="absolute inset-0 flex items-center justify-center text-gray-500 hidden" id="typeChartEmpty">
+                        <div class="text-center">
+                            <svg class="icon icon-2xl mb-2"><use href="#icon-line-chart"/></svg>
+                            <p>没有符合条件的数据</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 任务状态趋势图 -->
+            <div class="bg-white rounded-lg p-6 card-shadow">
+                <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
+                    <span>任务结果状态趋势分析</span>
+                    <div class="flex items-center gap-4">
+                        <div class="dropdown-container relative" style="min-width: 160px;">
+                            <div class="flex items-center justify-between filter-select cursor-pointer text-sm" id="statusChartDropdown">
+                                <span id="statusChartDisplay" class="truncate" style="max-width: 120px;">请选择任务状态</span>
+                                <svg class="icon icon-sm ml-2"><use href="#icon-chevron-down"/></svg>
+                            </div>
+                            <div class="selected-tags" id="statusChartTags"></div>
+                            <div class="dropdown-content hidden absolute top-full left-0 z-50" id="statusChartOptions" style="min-width: 200px;">
+                                <div class="p-2">
+                                    <input type="text" placeholder="搜索状态..." class="w-full px-3 py-1 border border-gray-300 rounded text-sm" id="statusChartSearch">
+                                </div>
+                                <div class="select-all-item" id="selectAllStatusChart">
+                                    <svg class="icon mr-2"><use href="#icon-check-square-o"/></svg>全选
+                                </div>
+                            </div>
+                            <input type="hidden" id="statusChartValue" value="">
+                        </div>
+
+                        <button id="resetStatusChart" class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition">
+                            <svg class="icon mr-1"><use href="#icon-refresh"/></svg>重置筛选
+                        </button>
+
+                        <div class="w-px h-6 bg-gray-300"></div>
+
+                        <div class="flex gap-2">
+                            <label class="flex items-center px-2 py-1 bg-secondary/10 text-secondary rounded cursor-pointer hover:bg-secondary/20 transition">
+                                <input type="checkbox" id="showStatusLabels" class="mr-2 w-4 h-4">
+                                <span class="text-sm font-medium">显示数据标签</span>
+                            </label>
+                            <button class="chart-download-btn px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition"
+                                    data-chart="statusChart" data-type="image">
+                                <svg class="icon mr-1"><use href="#icon-download"/></svg>下载图表
+                            </button>
+                            <button class="chart-download-btn px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition"
+                                    data-chart="statusChart" data-type="csv">
+                                <svg class="icon mr-1"><use href="#icon-table"/></svg>下载数据
+                            </button>
+                        </div>
+                    </div>
+                </h3>
+
+                <div class="chart-container">
+                    <canvas id="statusChart"></canvas>
+                    <div class="absolute inset-0 flex items-center justify-center text-gray-500 hidden" id="statusChartEmpty">
+                        <div class="text-center">
+                            <svg class="icon icon-2xl mb-2"><use href="#icon-line-chart"/></svg>
+                            <p>没有符合条件的数据</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 周期规则配置模态框 -->
+    <div id="groupingConfigModal" class="fixed inset-0 bg-black/50 modal-backdrop flex items-center justify-center z-50 hidden">
+        <div class="bg-card rounded-lg w-full max-w-md p-6 transform transition-all scale-95 opacity-0" id="modalContent">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">周期规则配置（所有时间均为文件时间）</h3>
+                <button id="closeConfigModal" class="text-gray-500 hover:text-gray-700 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="mb-6 pb-4 border-b border-gray-100">
+                <h4 class="font-medium mb-3">按日周期</h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">周期起始时间</label>
+                        <input type="time" id="dayStart" class="w-full p-2 border border-gray-300 rounded-md" value="00:00">
+                    </div>
+                    <div>
+                        <p class="block text-sm text-gray-600 mb-1">周期范围</p>
+                        <div class="p-2 border border-gray-200 rounded-md bg-gray-50 text-sm">
+                            X日 <span id="dayStartDisplay">00:00</span> 至 X+1日 <span id="dayEndDisplay">00:00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-6 pb-4 border-b border-gray-100">
+                <h4 class="font-medium mb-3">按周周期</h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">周起始日</label>
+                        <select id="weekStartDay" class="w-full p-2 border border-gray-300 rounded-md">
+                            <option value="0">周日</option>
+                            <option value="1" selected>周一</option>
+                            <option value="2">周二</option>
+                            <option value="3">周三</option>
+                            <option value="4">周四</option>
+                            <option value="5">周五</option>
+                            <option value="6">周六</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">起始时间</label>
+                        <input type="time" id="weekStartTime" class="w-full p-2 border border-gray-300 rounded-md" value="00:00">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-6 pb-4 border-b border-gray-100">
+                <h4 class="font-medium mb-3">按月周期</h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">月起始日期</label>
+                        <input type="number" id="monthStartDate" min="1" max="31" class="w-full p-2 border border-gray-300 rounded-md" value="1">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">起始时间</label>
+                        <input type="time" id="monthStartTime" class="w-full p-2 border border-gray-300 rounded-md" value="00:00">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <h4 class="font-medium mb-3">按季度周期</h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">季度起始月份</label>
+                        <select id="quarterStartMonth" class="w-full p-2 border border-gray-300 rounded-md">
+                            <option value="1">1月（Q1:1-3月）</option>
+                            <option value="4">4月（Q2:4-6月）</option>
+                            <option value="7">7月（Q3:7-9月）</option>
+                            <option value="10">10月（Q4:10-12月）</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">起始时间</label>
+                        <input type="time" id="quarterStartTime" class="w-full p-2 border border-gray-300 rounded-md" value="00:00">
+                    </div>
+                </div>
+            </div>
+
+            <button id="saveGroupingConfig" class="w-full px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors">
+                保存配置
+            </button>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="./public/js/websocket-manager.js" defer></script>
+    <script src="./public/js/multi-select-dropdown.js" defer></script>
+    <script src="./public/js/trend-utils.js" defer></script>
+    <script src="./public/js/theme-manager.js" defer></script>
+    <script src="./public/js/trend-analysis-app.js" defer></script>
+</body>
+</html>
