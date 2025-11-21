@@ -109,6 +109,22 @@ class SatelliteApp {
             });
         }
 
+        // 关闭卫星模态框
+        const closeSatelliteBtn = document.getElementById('closeSatelliteModal');
+        if (closeSatelliteBtn) {
+            closeSatelliteBtn.addEventListener('click', () => {
+                this.hideSatelliteModal();
+            });
+        }
+
+        // 关闭客户模态框
+        const closeCustomerBtn = document.getElementById('closeCustomerModal');
+        if (closeCustomerBtn) {
+            closeCustomerBtn.addEventListener('click', () => {
+                this.hideCustomerModal();
+            });
+        }
+
         // 周期规则配置按钮
         const configBtn = document.getElementById('configGroupingBtn');
         if (configBtn) {
@@ -578,16 +594,24 @@ class SatelliteApp {
         }
 
         try {
+            // 显示模态框和加载状态
+            this.showSatelliteModal();
+            this.showSatelliteLoading(true);
+
             console.log('📊 查询卫星趋势...');
             const result = await window.wsManager.queryStats('satellite_trend', this.currentFilters);
-
-            // TODO: 渲染卫星趋势图表
             console.log('✅ 卫星趋势数据:', result);
-            alert('卫星趋势功能开发中...');
+
+            // 渲染卫星趋势图表
+            this.renderSatelliteChart(result.records, this.currentFilters.groupBy);
+
+            this.showSatelliteLoading(false);
 
         } catch (error) {
             console.error('❌ 查询卫星趋势失败:', error);
-            this.showError('查询失败: ' + error.message);
+            this.showSatelliteLoading(false);
+            this.showSatelliteEmpty(true);
+            alert('查询失败: ' + error.message);
         }
     }
 
@@ -601,17 +625,297 @@ class SatelliteApp {
         }
 
         try {
+            // 显示模态框和加载状态
+            this.showCustomerModal();
+            this.showCustomerLoading(true);
+
             console.log('📊 查询客户趋势...');
             const result = await window.wsManager.queryStats('customer_trend', this.currentFilters);
-
-            // TODO: 渲染客户趋势图表
             console.log('✅ 客户趋势数据:', result);
-            alert('客户趋势功能开发中...');
+
+            // 渲染客户趋势图表
+            this.renderCustomerChart(result.records, this.currentFilters.groupBy);
+
+            this.showCustomerLoading(false);
 
         } catch (error) {
             console.error('❌ 查询客户趋势失败:', error);
-            this.showError('查询失败: ' + error.message);
+            this.showCustomerLoading(false);
+            this.showCustomerEmpty(true);
+            alert('查询失败: ' + error.message);
         }
+    }
+
+    /**
+     * 渲染卫星数量趋势图
+     */
+    renderSatelliteChart(records, groupBy) {
+        const canvas = document.getElementById('satelliteCountChart');
+        if (!canvas) return;
+
+        // 销毁旧图表
+        if (this.charts.satellite) {
+            this.charts.satellite.destroy();
+        }
+
+        // 如果没有数据，显示空状态
+        if (!records || records.length === 0) {
+            this.showSatelliteEmpty(true);
+            return;
+        }
+
+        this.showSatelliteEmpty(false);
+
+        // 准备数据 - 格式化标签
+        const labels = records.map((r, index) => {
+            const period = r.period;
+            let cleanPeriod = period;
+
+            if (typeof period === 'string' && (period.includes(' ') || period.includes('T'))) {
+                cleanPeriod = period.split(/[T ]/)[0];
+            }
+
+            switch(groupBy) {
+                case 'day':
+                    return cleanPeriod;
+                case 'week':
+                    if (cleanPeriod.includes('-')) {
+                        const date = new Date(cleanPeriod + 'T00:00:00');
+                        const weekNum = this.getWeekNumber(date);
+                        return `W${weekNum}`;
+                    }
+                    return `W${index + 1}`;
+                case 'month':
+                    if (cleanPeriod.includes('-')) {
+                        const month = cleanPeriod.split('-')[1];
+                        return `${parseInt(month)}月`;
+                    }
+                    return cleanPeriod;
+                case 'quarter':
+                    if (typeof cleanPeriod === 'string' && cleanPeriod.includes('-Q')) {
+                        return cleanPeriod.split('-')[1];
+                    }
+                    return cleanPeriod;
+                default:
+                    return cleanPeriod;
+            }
+        });
+
+        const satelliteCounts = records.map(r => r.satellite_count);
+
+        // 创建图表
+        const ctx = canvas.getContext('2d');
+        this.charts.satellite = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '卫星数量',
+                    data: satelliteCounts,
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                    pointBorderColor: '#fff',
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    fill: true,
+                    tension: 0.4,
+                    datalabels: {
+                        color: 'rgba(54, 162, 235, 1)',
+                        anchor: 'end',
+                        align: 'top',
+                        offset: 4,
+                        font: {
+                            weight: 'bold',
+                            size: 11
+                        }
+                    }
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        top: 30,
+                        right: 20,
+                        bottom: 10,
+                        left: 20
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: `卫星数量趋势 (按${this.getGroupByLabel(groupBy)})`,
+                        font: {
+                            size: 16
+                        }
+                    },
+                    legend: {
+                        display: true,
+                        position: 'bottom'
+                    },
+                    datalabels: {
+                        display: document.getElementById('showDataLabels')?.checked || false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: '卫星数量'
+                        },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        console.log('✅ 卫星趋势图渲染完成');
+    }
+
+    /**
+     * 渲染客户数量趋势图
+     */
+    renderCustomerChart(records, groupBy) {
+        const canvas = document.getElementById('customerCountChart');
+        if (!canvas) return;
+
+        // 销毁旧图表
+        if (this.charts.customer) {
+            this.charts.customer.destroy();
+        }
+
+        // 如果没有数据，显示空状态
+        if (!records || records.length === 0) {
+            this.showCustomerEmpty(true);
+            return;
+        }
+
+        this.showCustomerEmpty(false);
+
+        // 准备数据 - 格式化标签
+        const labels = records.map((r, index) => {
+            const period = r.period;
+            let cleanPeriod = period;
+
+            if (typeof period === 'string' && (period.includes(' ') || period.includes('T'))) {
+                cleanPeriod = period.split(/[T ]/)[0];
+            }
+
+            switch(groupBy) {
+                case 'day':
+                    return cleanPeriod;
+                case 'week':
+                    if (cleanPeriod.includes('-')) {
+                        const date = new Date(cleanPeriod + 'T00:00:00');
+                        const weekNum = this.getWeekNumber(date);
+                        return `W${weekNum}`;
+                    }
+                    return `W${index + 1}`;
+                case 'month':
+                    if (cleanPeriod.includes('-')) {
+                        const month = cleanPeriod.split('-')[1];
+                        return `${parseInt(month)}月`;
+                    }
+                    return cleanPeriod;
+                case 'quarter':
+                    if (typeof cleanPeriod === 'string' && cleanPeriod.includes('-Q')) {
+                        return cleanPeriod.split('-')[1];
+                    }
+                    return cleanPeriod;
+                default:
+                    return cleanPeriod;
+            }
+        });
+
+        const customerCounts = records.map(r => r.customer_count);
+
+        // 创建图表
+        const ctx = canvas.getContext('2d');
+        this.charts.customer = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '客户数量',
+                    data: customerCounts,
+                    backgroundColor: 'rgba(255, 159, 64, 0.1)',
+                    borderColor: 'rgba(255, 159, 64, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(255, 159, 64, 1)',
+                    pointBorderColor: '#fff',
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    fill: true,
+                    tension: 0.4,
+                    datalabels: {
+                        color: 'rgba(255, 159, 64, 1)',
+                        anchor: 'end',
+                        align: 'top',
+                        offset: 4,
+                        font: {
+                            weight: 'bold',
+                            size: 11
+                        }
+                    }
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        top: 30,
+                        right: 20,
+                        bottom: 10,
+                        left: 20
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: `客户数量趋势 (按${this.getGroupByLabel(groupBy)})`,
+                        font: {
+                            size: 16
+                        }
+                    },
+                    legend: {
+                        display: true,
+                        position: 'bottom'
+                    },
+                    datalabels: {
+                        display: document.getElementById('showDataLabels')?.checked || false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: '客户数量'
+                        },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        console.log('✅ 客户趋势图渲染完成');
     }
 
     /**
@@ -986,6 +1290,118 @@ class SatelliteApp {
         } catch (error) {
             console.error('❌ 下载数据失败:', error);
             alert('下载数据失败: ' + error.message);
+        }
+    }
+
+    /**
+     * 显示卫星模态框
+     */
+    showSatelliteModal() {
+        const modal = document.getElementById('satelliteCountModal');
+        const modalContent = document.getElementById('satelliteModalContent');
+        if (modal && modalContent) {
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modalContent.classList.remove('scale-95', 'opacity-0');
+            }, 10);
+        }
+    }
+
+    /**
+     * 隐藏卫星模态框
+     */
+    hideSatelliteModal() {
+        const modal = document.getElementById('satelliteCountModal');
+        const modalContent = document.getElementById('satelliteModalContent');
+        if (modal && modalContent) {
+            modalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+    }
+
+    /**
+     * 显示客户模态框
+     */
+    showCustomerModal() {
+        const modal = document.getElementById('customerCountModal');
+        const modalContent = document.getElementById('customerModalContent');
+        if (modal && modalContent) {
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modalContent.classList.remove('scale-95', 'opacity-0');
+            }, 10);
+        }
+    }
+
+    /**
+     * 隐藏客户模态框
+     */
+    hideCustomerModal() {
+        const modal = document.getElementById('customerCountModal');
+        const modalContent = document.getElementById('customerModalContent');
+        if (modal && modalContent) {
+            modalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+    }
+
+    /**
+     * 显示/隐藏卫星图表加载状态
+     */
+    showSatelliteLoading(show) {
+        const loading = document.getElementById('satelliteChartLoading');
+        if (loading) {
+            if (show) {
+                loading.classList.remove('hidden');
+            } else {
+                loading.classList.add('hidden');
+            }
+        }
+    }
+
+    /**
+     * 显示/隐藏卫星图表空状态
+     */
+    showSatelliteEmpty(show) {
+        const empty = document.getElementById('satelliteChartEmpty');
+        if (empty) {
+            if (show) {
+                empty.classList.remove('hidden');
+            } else {
+                empty.classList.add('hidden');
+            }
+        }
+    }
+
+    /**
+     * 显示/隐藏客户图表加载状态
+     */
+    showCustomerLoading(show) {
+        const loading = document.getElementById('customerChartLoading');
+        if (loading) {
+            if (show) {
+                loading.classList.remove('hidden');
+            } else {
+                loading.classList.add('hidden');
+            }
+        }
+    }
+
+    /**
+     * 显示/隐藏客户图表空状态
+     */
+    showCustomerEmpty(show) {
+        const empty = document.getElementById('customerChartEmpty');
+        if (empty) {
+            if (show) {
+                empty.classList.remove('hidden');
+            } else {
+                empty.classList.add('hidden');
+            }
         }
     }
 }
