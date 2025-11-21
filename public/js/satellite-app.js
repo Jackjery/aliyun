@@ -34,6 +34,9 @@ class SatelliteApp {
     async init() {
         console.log('📊 初始化卫星任务分析应用...');
 
+        // 清空所有缓存（确保每次打开都是全新状态）
+        this.clearAllCache();
+
         // 初始化日期选择器
         this.initDatePickers();
 
@@ -45,6 +48,9 @@ class SatelliteApp {
 
         // 初始化WebSocket数据变更监听
         this.initWebSocketListeners();
+
+        // 注册页面卸载时清空缓存
+        this.registerUnloadHandler();
 
         console.log('✅ 应用初始化完成');
     }
@@ -60,7 +66,7 @@ class SatelliteApp {
         document.getElementById('startDate').valueAsDate = startDate;
         document.getElementById('endDate').valueAsDate = endDate;
 
-        console.log('📅 日期初始化:', {
+        console.log('📅 日期初始化（全新状态）:', {
             startDate: startDate.toLocaleDateString(),
             endDate: endDate.toLocaleDateString()
         });
@@ -1433,6 +1439,42 @@ class SatelliteApp {
                 empty.classList.add('hidden');
             }
         }
+    }
+
+    /**
+     * 清空所有缓存
+     */
+    clearAllCache() {
+        try {
+            // 清空 sessionStorage（浏览器标签页级别）
+            sessionStorage.clear();
+
+            // 清空 localStorage（包括主题设置、周期配置等所有数据）
+            localStorage.clear();
+
+            console.log('🗑️ 所有缓存已清空（包括主题、时间设置等）');
+        } catch (error) {
+            console.error('❌ 清空缓存失败:', error);
+        }
+    }
+
+    /**
+     * 注册页面卸载时的清空缓存处理
+     */
+    registerUnloadHandler() {
+        // beforeunload: 页面刷新或关闭前触发
+        window.addEventListener('beforeunload', () => {
+            console.log('🔄 页面即将卸载，清空所有缓存...');
+            this.clearAllCache();
+        });
+
+        // pagehide: 页面隐藏时触发（更可靠的移动端支持）
+        window.addEventListener('pagehide', () => {
+            console.log('👋 页面隐藏，清空所有缓存...');
+            this.clearAllCache();
+        });
+
+        console.log('✅ 已注册页面卸载清空缓存处理');
     }
 }
 
