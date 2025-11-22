@@ -1314,12 +1314,29 @@ class TrendAnalysisApp {
                 box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             `;
             document.body.appendChild(tooltipEl);
+
+            // 鼠标进入tooltip时保持显示
+            tooltipEl.addEventListener('mouseenter', () => {
+                tooltipEl._hovered = true;
+            });
+
+            // 鼠标离开tooltip时延迟隐藏
+            tooltipEl.addEventListener('mouseleave', () => {
+                tooltipEl._hovered = false;
+                setTimeout(() => {
+                    if (!tooltipEl._hovered) {
+                        tooltipEl.style.opacity = '0';
+                    }
+                }, 300);
+            });
         }
 
-        // 隐藏 tooltip
+        // 隐藏 tooltip（但如果鼠标在tooltip上则保持显示）
         const tooltipModel = context.tooltip;
         if (tooltipModel.opacity === 0) {
-            tooltipEl.style.opacity = '0';
+            if (!tooltipEl._hovered) {
+                tooltipEl.style.opacity = '0';
+            }
             return;
         }
 
