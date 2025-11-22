@@ -25,6 +25,11 @@ class MultiSelectDropdown {
         if (dropdownEl) {
             dropdownEl.addEventListener('click', (e) => {
                 e.stopPropagation();
+                // 如果点击的是搜索框，不切换
+                const searchEl = document.getElementById(this.searchId);
+                if (searchEl && searchEl.contains(e.target)) {
+                    return;
+                }
                 this.toggleDropdown();
             });
         }
@@ -33,6 +38,10 @@ class MultiSelectDropdown {
         if (searchEl) {
             searchEl.addEventListener('input', (e) => {
                 this.filterOptions(e.target.value);
+            });
+            // 搜索框点击时阻止冒泡
+            searchEl.addEventListener('click', (e) => {
+                e.stopPropagation();
             });
         }
 
@@ -70,8 +79,17 @@ class MultiSelectDropdown {
 
         console.warn(`🎨 [MultiSelect] renderOptions 开始，选项ID: ${this.optionsId}, 全部选项数: ${this.allOptions.length}, 过滤器: "${filter}"`);
 
-        while (optionsContainer.children.length > 2) {
-            optionsContainer.removeChild(optionsContainer.lastChild);
+        // 查找或创建选项列表容器
+        let listContainer = optionsContainer.querySelector('.dropdown-options-list');
+        if (!listContainer) {
+            // 旧结构兼容：直接清空并重建
+            while (optionsContainer.children.length > 2) {
+                optionsContainer.removeChild(optionsContainer.lastChild);
+            }
+            listContainer = optionsContainer;
+        } else {
+            // 新结构：仅清空列表容器
+            listContainer.innerHTML = '';
         }
 
         const filteredOptions = this.allOptions.filter(option =>
@@ -82,15 +100,20 @@ class MultiSelectDropdown {
 
         filteredOptions.forEach(option => {
             const optionEl = document.createElement('div');
-            optionEl.className = 'tab-item tab-item-inactive flex items-center p-2';
+            optionEl.className = 'dropdown-option-item';
+            if (this.selectedValues.includes(option.value)) {
+                optionEl.classList.add('selected');
+            }
+
             optionEl.innerHTML = `
-                <input type="checkbox" class="multiselect-checkbox"
+                <input type="checkbox"
                        data-value="${option.value}"
                        ${this.selectedValues.includes(option.value) ? 'checked' : ''}>
                 <span>${option.label}</span>
             `;
 
-            optionEl.querySelector('input').addEventListener('change', (e) => {
+            const checkbox = optionEl.querySelector('input');
+            checkbox.addEventListener('change', (e) => {
                 e.stopPropagation();
                 this.toggleSelection(option.value, e.target.checked);
             });
@@ -98,14 +121,13 @@ class MultiSelectDropdown {
             optionEl.addEventListener('click', (e) => {
                 e.stopPropagation();
                 if (e.target.tagName !== 'INPUT') {
-                    const checkbox = optionEl.querySelector('input');
                     checkbox.checked = !checkbox.checked;
                     const ev = new Event('change', { bubbles: false });
                     checkbox.dispatchEvent(ev);
                 }
             });
 
-            optionsContainer.appendChild(optionEl);
+            listContainer.appendChild(optionEl);
         });
 
         this.updateSelectAllStatus();
@@ -126,7 +148,7 @@ class MultiSelectDropdown {
         this.updateTags();
         this.updateSelectAllStatus();
 
-        // 【自动清除搜索框】选择后自动清空搜索内容
+        // 【自动清除搜索框】选择后自动清空搜索内容，但保持下拉面板打开
         const searchEl = document.getElementById(this.searchId);
         if (searchEl) {
             searchEl.value = '';
@@ -137,6 +159,7 @@ class MultiSelectDropdown {
             this.onChange([...this.selectedValues]);
         }
 
+        // 保持下拉面板打开状态
         this.openDropdown();
     }
 
@@ -231,41 +254,50 @@ class MultiSelectDropdown {
 
     updateTags() {
         const tagsContainer = document.getElementById(this.tagsId);
+        const displayEl = document.getElementById(this.displayId);
+
         if (!tagsContainer) return;
+
+        // 清空容器
         tagsContainer.innerHTML = '';
 
-        if (this.selectedValues.length > 5) {
-            const tagEl = document.createElement('div');
-            tagEl.className = 'selected-tag';
-            tagEl.innerHTML = `已选择 ${this.selectedValues.length} 项 <span class="tag-remove" data-clear="all">×</span>`;
-
-            tagEl.querySelector('.tag-remove').addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.clearSelection();
-            });
-
-            tagsContainer.appendChild(tagEl);
+        // 没有选择时显示占位符
+        if (this.selectedValues.length === 0) {
+            const placeholder = document.createElement('span');
+            placeholder.className = 'placeholder';
+            placeholder.textContent = displayEl?.getAttribute('data-placeholder') || '请选择';
+            tagsContainer.appendChild(placeholder);
             return;
         }
 
-        this.selectedValues.forEach(value => {
-            const option = this.allOptions.find(opt => opt.value === value);
-            if (!option) return;
+        // 显示第一个标签
+        const firstValue = this.selectedValues[0];
+        const firstOption = this.allOptions.find(opt => opt.value === firstValue);
 
+        if (firstOption) {
             const tagEl = document.createElement('div');
-            tagEl.className = 'selected-tag';
+            tagEl.className = 'selected-tag-inline';
             tagEl.innerHTML = `
-                ${option.label}
-                <span class="tag-remove" data-value="${value}">×</span>
+                <span class="tag-label" title="${firstOption.label}">${firstOption.label}</span>
+                <span class="tag-remove" data-value="${firstValue}">×</span>
             `;
 
             tagEl.querySelector('.tag-remove').addEventListener('click', (e) => {
                 e.stopPropagation();
-                this.toggleSelection(e.target.dataset.value, false);
+                this.toggleSelection(firstValue, false);
             });
 
             tagsContainer.appendChild(tagEl);
-        });
+        }
+
+        // 如果有更多选项，显示 +N
+        if (this.selectedValues.length > 1) {
+            const moreCount = document.createElement('span');
+            moreCount.className = 'more-count';
+            moreCount.textContent = `+${this.selectedValues.length - 1}`;
+            moreCount.title = `已选择 ${this.selectedValues.length} 项`;
+            tagsContainer.appendChild(moreCount);
+        }
     }
 
     clearSelection() {
@@ -280,20 +312,37 @@ class MultiSelectDropdown {
 
     toggleDropdown() {
         const optionsContainer = document.getElementById(this.optionsId);
+        const dropdownEl = document.getElementById(this.dropdownId);
         if (!optionsContainer) return;
-        optionsContainer.classList.toggle('hidden');
+
+        const isOpen = !optionsContainer.classList.contains('hidden');
+        if (isOpen) {
+            this.closeDropdown();
+        } else {
+            this.openDropdown();
+        }
     }
 
     closeDropdown() {
         const optionsContainer = document.getElementById(this.optionsId);
+        const dropdownEl = document.getElementById(this.dropdownId);
         if (!optionsContainer) return;
+
         optionsContainer.classList.add('hidden');
+        if (dropdownEl) {
+            dropdownEl.classList.remove('dropdown-open');
+        }
     }
 
     openDropdown() {
         const optionsContainer = document.getElementById(this.optionsId);
+        const dropdownEl = document.getElementById(this.dropdownId);
         if (!optionsContainer) return;
+
         optionsContainer.classList.remove('hidden');
+        if (dropdownEl) {
+            dropdownEl.classList.add('dropdown-open');
+        }
     }
 
     getSelectedValues() {
