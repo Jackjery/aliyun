@@ -886,6 +886,9 @@ class TrendAnalysisApp {
                     options: this.getChartOptions('测站趋势')
                 });
 
+                // 创建自定义图例
+                this.createCustomLegend(this.charts.station, 'stationChartLegend');
+
                 // 显示图表
                 canvas.style.display = 'block';
                 if (emptyState) emptyState.classList.add('hidden');
@@ -897,6 +900,9 @@ class TrendAnalysisApp {
                 }
                 canvas.style.display = 'none';
                 if (emptyState) emptyState.classList.remove('hidden');
+                // 清空图例
+                const legendContainer = document.getElementById('stationChartLegend');
+                if (legendContainer) legendContainer.innerHTML = '';
             }
 
             this.hideChartLoading('station');
@@ -949,6 +955,9 @@ class TrendAnalysisApp {
                     options: this.getChartOptions('客户趋势')
                 });
 
+                // 创建自定义图例
+                this.createCustomLegend(this.charts.customer, 'customerChartLegend');
+
                 canvas.style.display = 'block';
                 if (emptyState) emptyState.classList.add('hidden');
             } else {
@@ -958,6 +967,9 @@ class TrendAnalysisApp {
                 }
                 canvas.style.display = 'none';
                 if (emptyState) emptyState.classList.remove('hidden');
+                // 清空图例
+                const legendContainer = document.getElementById('customerChartLegend');
+                if (legendContainer) legendContainer.innerHTML = '';
             }
 
             this.hideChartLoading('customer');
@@ -1010,6 +1022,9 @@ class TrendAnalysisApp {
                     options: this.getChartOptions('卫星趋势')
                 });
 
+                // 创建自定义图例
+                this.createCustomLegend(this.charts.satellite, 'satelliteChartLegend');
+
                 canvas.style.display = 'block';
                 if (emptyState) emptyState.classList.add('hidden');
             } else {
@@ -1019,6 +1034,9 @@ class TrendAnalysisApp {
                 }
                 canvas.style.display = 'none';
                 if (emptyState) emptyState.classList.remove('hidden');
+                // 清空图例
+                const legendContainer = document.getElementById('satelliteChartLegend');
+                if (legendContainer) legendContainer.innerHTML = '';
             }
 
             this.hideChartLoading('satellite');
@@ -1071,6 +1089,9 @@ class TrendAnalysisApp {
                     options: this.getChartOptions('任务类型趋势')
                 });
 
+                // 创建自定义图例
+                this.createCustomLegend(this.charts.taskType, 'typeChartLegend');
+
                 canvas.style.display = 'block';
                 if (emptyState) emptyState.classList.add('hidden');
             } else {
@@ -1080,6 +1101,9 @@ class TrendAnalysisApp {
                 }
                 canvas.style.display = 'none';
                 if (emptyState) emptyState.classList.remove('hidden');
+                // 清空图例
+                const legendContainer = document.getElementById('typeChartLegend');
+                if (legendContainer) legendContainer.innerHTML = '';
             }
 
             this.hideChartLoading('type');
@@ -1132,6 +1156,9 @@ class TrendAnalysisApp {
                     options: this.getChartOptions('任务结果状态趋势')
                 });
 
+                // 创建自定义图例
+                this.createCustomLegend(this.charts.taskStatus, 'statusChartLegend');
+
                 canvas.style.display = 'block';
                 if (emptyState) emptyState.classList.add('hidden');
             } else {
@@ -1141,6 +1168,9 @@ class TrendAnalysisApp {
                 }
                 canvas.style.display = 'none';
                 if (emptyState) emptyState.classList.remove('hidden');
+                // 清空图例
+                const legendContainer = document.getElementById('statusChartLegend');
+                if (legendContainer) legendContainer.innerHTML = '';
             }
 
             this.hideChartLoading('status');
@@ -1161,7 +1191,7 @@ class TrendAnalysisApp {
             layout: {
                 padding: {
                     top: 30,      // 顶部留空间，防止数据标签被遮挡
-                    right: 20,    // 右侧留空间（图例在右侧时会自动调整）
+                    right: 50,    // 右侧留较大空间，防止标签被遮挡
                     bottom: 10,   // 底部留空间
                     left: 20      // 左侧留空间
                 }
@@ -1173,6 +1203,10 @@ class TrendAnalysisApp {
             elements: {
                 line: {
                     spanGaps: false  // 确保不跳过0值或空值
+                },
+                point: {
+                    radius: 3,       // 确保所有点都显示，包括0值
+                    hoverRadius: 5
                 }
             },
             plugins: {
@@ -1180,30 +1214,7 @@ class TrendAnalysisApp {
                     display: false
                 },
                 legend: {
-                    display: true,
-                    position: 'right',      // 右侧单列布局
-                    align: 'start',         // 顶部对齐
-                    labels: {
-                        boxWidth: 10,       // 图例色块宽度（紧凑）
-                        boxHeight: 10,      // 图例色块高度
-                        padding: 6,         // 图例项之间的间距（更紧凑）
-                        font: {
-                            size: 11        // 字体大小
-                        },
-                        usePointStyle: false
-                    },
-                    maxWidth: 140,          // 限制最大宽度140px（节省空间）
-                    maxHeight: 400,         // 最大高度400px（超过则滚动）
-                    onClick: (e, legendItem, legend) => {
-                        // 点击图例项切换显示/隐藏对应的数据集
-                        const index = legendItem.datasetIndex;
-                        const chart = legend.chart;
-                        const meta = chart.getDatasetMeta(index);
-
-                        // 切换可见性
-                        meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
-                        chart.update();
-                    }
+                    display: false  // 禁用原生图例，使用自定义 HTML 图例
                 },
                 tooltip: {
                     enabled: false,  // 禁用默认tooltip
@@ -1243,6 +1254,40 @@ class TrendAnalysisApp {
                 }
             }
         };
+    }
+
+    /**
+     * 创建自定义 HTML 图例
+     */
+    createCustomLegend(chart, containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        // 清空现有内容
+        container.innerHTML = '';
+
+        // 生成图例项
+        chart.data.datasets.forEach((dataset, index) => {
+            const meta = chart.getDatasetMeta(index);
+            const isHidden = meta.hidden;
+
+            const item = document.createElement('div');
+            item.className = `chart-legend-item ${isHidden ? 'hidden' : ''}`;
+            item.title = dataset.label; // 悬停显示完整名称
+            item.innerHTML = `
+                <span class="chart-legend-color" style="background-color: ${dataset.borderColor}"></span>
+                <span class="chart-legend-label">${dataset.label}</span>
+            `;
+
+            // 点击切换显示/隐藏
+            item.addEventListener('click', () => {
+                meta.hidden = !meta.hidden;
+                item.classList.toggle('hidden');
+                chart.update();
+            });
+
+            container.appendChild(item);
+        });
     }
 
     /**
@@ -1358,11 +1403,30 @@ class TrendAnalysisApp {
             tooltipEl.innerHTML = innerHtml;
         }
 
-        // 定位
+        // 定位 - 跟随光标Y坐标
         const position = context.chart.canvas.getBoundingClientRect();
+        const tooltipHeight = tooltipEl.offsetHeight;
+        const windowHeight = window.innerHeight;
+
+        // X坐标：显示在光标右侧
+        let left = position.left + window.pageXOffset + tooltipModel.caretX + 15;
+
+        // Y坐标：跟随光标，但避免溢出屏幕
+        let top = position.top + window.pageYOffset + tooltipModel.caretY;
+
+        // 如果tooltip会超出屏幕底部，则向上调整
+        if (top + tooltipHeight > window.pageYOffset + windowHeight) {
+            top = window.pageYOffset + windowHeight - tooltipHeight - 10;
+        }
+
+        // 如果tooltip会超出屏幕顶部，则向下调整
+        if (top < window.pageYOffset) {
+            top = window.pageYOffset + 10;
+        }
+
         tooltipEl.style.opacity = '1';
-        tooltipEl.style.left = position.left + window.pageXOffset + tooltipModel.caretX + 'px';
-        tooltipEl.style.top = position.top + window.pageYOffset + tooltipModel.caretY + 'px';
+        tooltipEl.style.left = left + 'px';
+        tooltipEl.style.top = top + 'px';
     }
 
     /**

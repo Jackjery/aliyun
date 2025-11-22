@@ -106,7 +106,8 @@ function convertToChartData(records, dimensionField, valueField = 'record_count'
             const record = records.find(r =>
                 r.period === period && r[dimensionField] === dimension
             );
-            return record ? (record[valueField] || 0) : 0;
+            // 使用 ?? 确保0值不被当作 falsy 跳过
+            return record ? (record[valueField] ?? 0) : 0;
         });
 
         return {
