@@ -20,6 +20,7 @@ class WebSocketManager {
         // 事件回调
         this.onDataChange = null; // 数据变更回调
         this.onConnectionChange = null; // 连接状态变化回调
+        this.onThemeChange = null; // 主题变化回调
 
         // 统计查询请求映射
         this.pendingRequests = new Map(); // requestId → {resolve, reject, timeout}
@@ -93,6 +94,14 @@ class WebSocketManager {
                 case 'stats_query_response':
                     // 统计查询响应
                     this.handleStatsQueryResponse(message);
+                    break;
+
+                case 'theme_change':
+                    // 主题变化通知
+                    console.log('🎨 收到主题变化通知:', message.data);
+                    if (this.onThemeChange) {
+                        this.onThemeChange(message.data);
+                    }
                     break;
 
                 default:
@@ -263,6 +272,28 @@ class WebSocketManager {
      */
     generateRequestId() {
         return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+
+    // ==================== 主题同步功能 ====================
+
+    /**
+     * 广播主题变化到其他页面
+     * @param {object} themeData - 主题数据 {color, mode}
+     */
+    broadcastTheme(themeData) {
+        if (!this.isConnected) {
+            console.warn('⚠️ WebSocket未连接，无法广播主题');
+            return;
+        }
+
+        const message = {
+            type: 'theme_change',
+            data: themeData,
+            timestamp: Date.now()
+        };
+
+        console.log('📡 广播主题变化:', themeData);
+        this.send(message);
     }
 }
 

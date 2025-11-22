@@ -6,608 +6,232 @@
     <title>卫星任务数据分析平台</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg">
 
-
-    <!-- 🚀 性能优化：预解析API和WebSocket服务器，减少首次请求延迟 -->
-    <link rel="dns-prefetch" href="https://records-bsjjdmpsel.cn-hangzhou.fcapp.run">
-    <link rel="preconnect" href="https://records-bsjjdmpsel.cn-hangzhou.fcapp.run">
-    <link rel="dns-prefetch" href="https://ws.nxjyx.com.cn">
-    <link rel="preconnect" href="https://ws.nxjyx.com.cn">
-
-    <!-- 🎨 主题系统 - 支持深色/浅色模式 + 多彩主题切换 -->
+    <!-- 主题系统 -->
     <link rel="stylesheet" href="./public/css/themes.css">
-
-    <!-- 本地资源 - 极简SVG方案 -->
-    <!-- 本地Tailwind CSS -->
     <link rel="stylesheet" href="./public/css/output.css">
-    <!-- 本地图标系统 -->
     <link rel="stylesheet" href="./public/css/icons.css">
-    <!-- Index页面专用样式 -->
-    <link rel="stylesheet" href="./public/css/index.css">
 
-    <!-- 配置文件 - 必须最先加载 -->
-    <script src="./public/js/common/config.js"></script>
+    <style>
+        /* iframe 容器样式 */
+        .iframe-container {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 60px); /* 减去导航栏高度 */
+            overflow: hidden;
+        }
 
-    <!-- 图表库 - 移除defer确保顺序加载 -->
-    <script src="./public/lib/chart.min.js"></script>
-    <script src="./public/lib/chartjs-plugin-datalabels.min.js"></script>
-    <!-- 注册datalabels插件 -->
-    <script src="./public/js/pages/index/chart-plugin-init.js"></script>
+        .page-frame {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: none;
+        }
+
+        .page-frame.active {
+            display: block;
+        }
+
+        /* 导航栏样式 */
+        .nav-link {
+            color: rgb(var(--text-secondary));
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .nav-link:hover {
+            color: rgb(var(--color-primary));
+        }
+
+        .nav-link.active {
+            color: rgb(var(--color-primary));
+            font-weight: 500;
+            border-bottom: 2px solid rgb(var(--color-primary));
+        }
+    </style>
 </head>
-<body style="background-color: rgb(var(--bg-primary)); min-height: 100vh; color: rgb(var(--text-primary)); transition: all 0.3s;">
-    <!-- SVG图标库 - 异步加载不阻塞渲染 -->
-    <div style="display:none" id="svg-sprite-container"></div>
-    <!-- SVG sprite已移除，改用内联SVG图标 -->
-    <!-- 骨架屏 HTML -->
-    <div id="skeleton-screen" style="position: fixed; inset: 0; background-color: rgb(var(--bg-primary)); z-index: 50;">
-        <div class="container mx-auto px-4 py-6">
-            <!-- 头部骨架 -->
-            <div class="flex justify-between items-center mb-6">
-                <div class="h-8 w-48 bg-gray-300 animate-pulse rounded"></div>
-                <div class="h-10 w-32 bg-gray-300 animate-pulse rounded"></div>
-            </div>
+<body style="background-color: rgb(var(--bg-primary)); min-height: 100vh; margin: 0; padding: 0;">
 
-            <!-- 统计卡片骨架 -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div class="bg-card p-4 rounded shadow h-24 animate-pulse">
-                    <div class="h-4 w-20 bg-gray-300 rounded mb-2"></div>
-                    <div class="h-8 w-16 bg-gray-300 rounded"></div>
-                </div>
-                <div class="bg-card p-4 rounded shadow h-24 animate-pulse">
-                    <div class="h-4 w-20 bg-gray-300 rounded mb-2"></div>
-                    <div class="h-8 w-16 bg-gray-300 rounded"></div>
-                </div>
-                <div class="bg-card p-4 rounded shadow h-24 animate-pulse">
-                    <div class="h-4 w-20 bg-gray-300 rounded mb-2"></div>
-                    <div class="h-8 w-16 bg-gray-300 rounded"></div>
-                </div>
-                <div class="bg-card p-4 rounded shadow h-24 animate-pulse">
-                    <div class="h-4 w-20 bg-gray-300 rounded mb-2"></div>
-                    <div class="h-8 w-16 bg-gray-300 rounded"></div>
-                </div>
-            </div>
-
-            <!-- 图表骨架 -->
-            <div class="bg-card p-6 rounded shadow h-96 animate-pulse">
-                <div class="h-6 w-32 bg-gray-300 rounded mb-4"></div>
-                <div class="h-80 bg-gray-200 rounded"></div>
-            </div>
-
-            <!-- 加载提示 -->
-            <div class="text-center mt-4">
-                <div class="inline-flex items-center text-primary">
-                    <svg class="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span id="skeleton-progress">正在加载数据...</span>
-                    <span id="skeleton-progress-percent" class="ml-2 font-semibold">0%</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 顶部导航 -->
-    <header class="bg-card border-b border-default">
+    <!-- 顶部导航栏 -->
+    <header class="bg-card border-b border-default" style="height: 60px;">
         <div class="container mx-auto px-4 py-3 flex items-center justify-between">
             <div class="flex items-center space-x-2">
-                <svg class="icon icon-xl text-primary"><use href="#icon-line-chart"/></svg>
+                <svg class="icon icon-xl text-primary" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+                </svg>
                 <h1 class="text-xl font-bold text-primary">卫星任务数据分析平台</h1>
             </div>
 
             <!-- 导航菜单 -->
             <nav class="hidden md:flex items-center space-x-6">
-                <a href="index.html" class="text-primary font-medium border-b-2 border-primary px-1 py-5">首页</a>
-                <a href="trend-analysis.html" class="text-gray-600 hover:text-primary transition-colors px-1 py-5">数据趋势分析</a>
-                 <a href="data-distribution.html" class="text-gray-600 hover:text-primary transition-colors px-1 py-5">任务分布</a>
-                 <a href="circle-warning.html" class="text-gray-600 hover:text-primary transition-colors px-1 py-5">圈次数量预警</a>
-                 <a href="admin.html" class="text-gray-600 hover:text-primary transition-colors px-1 py-5">
+                <a class="nav-link active px-1 py-5" data-page="dashboard">首页</a>
+                <a class="nav-link px-1 py-5" data-page="trend">数据趋势分析</a>
+                <a class="nav-link px-1 py-5" data-page="admin">
                     <svg class="icon mr-1 inline-block" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                         <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
                         <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319z"/>
-                    </svg>数据管理
+                    </svg>
+                    数据管理
                 </a>
             </nav>
 
             <!-- 移动端菜单按钮 -->
             <button class="md:hidden text-gray-600 hover:text-primary">
-                <svg class="icon icon-xl"><use href="#icon-bars"/></svg>
+                <svg class="icon icon-xl" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
             </button>
         </div>
     </header>
 
-    <!-- 主内容区 -->
-    <main class="container mx-auto px-4 py-6">
-        <!-- WebSocket连接状态 -->
-        <div id="wsStatus" class="mb-3 p-3 bg-gray-100 text-gray-700 rounded-lg hidden">
-            <div class="flex items-center">
-                <svg class="icon icon-spin mr-2"><use href="#icon-spinner"/></svg>
-                <span id="wsStatusText">正在连接WebSocket...</span>
-            </div>
-        </div>
+    <!-- iframe 容器 -->
+    <div class="iframe-container">
+        <!-- 首页 iframe -->
+        <iframe id="frame-dashboard" class="page-frame active" src="pages/dashboard.html"></iframe>
 
+        <!-- 趋势分析 iframe -->
+        <iframe id="frame-trend" class="page-frame" data-src="pages/trend-analysis.html"></iframe>
 
-        <!-- 系统说明 -->
-        <section id="instructionsSection" class="mb-3 bg-card rounded-lg px-6 py-3 card-shadow">
-            <h2 class="text-lg font-semibold mb-4 flex items-center justify-between cursor-pointer" id="instructionsToggle">
-                <span class="flex items-center">
-                    <svg class="icon text-primary mr-2"><use href="#icon-info-circle"/></svg>系统说明
-                </span>
-                <i id="instructionsIcon" class="fa fa-chevron-up text-gray-500" style="transition: transform 0.3s ease;"></i>
-            </h2>
-            <div id="instructionsContent" class="overflow-hidden transition-all duration-300" style="max-height: 1000px; opacity: 1; margin-top: 0;">
-                <div style="background-color: rgba(var(--color-primary), 0.1); padding: 1rem; border-radius: 0.5rem;">
-                <p class="text-sm text-gray-700 mb-2">✅ 数据存储在MySQL数据库，后端实时统计</p>
-                <p class="text-sm text-gray-700 mb-2">⚡ WebSocket实时推送，数据变更自动通知</p>
-                <p class="text-sm text-gray-700 mb-2">📊 所有统计由后端计算，前端仅负责渲染图表</p>
-                <p class="text-sm text-gray-700">💡 所有时间处理均基于文件时间（北京时间）</p>
-            </div>
-            </div>
-        </section>
-
-        <!-- 筛选条件 -->
-        <section class="mb-3 bg-card rounded-lg px-4 py-3 card-shadow">
-            <div class="flex items-end justify-between gap-3">
-                <!-- 统计开始日期 -->
-                <div class="flex-1">
-                    <label class="block text-xs font-medium mb-1" style="color: rgb(var(--text-secondary));">统计开始日期</label>
-                    <input type="date" id="startDate"
-                           class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                           style="height: 38px;">
-                </div>
-
-                <!-- 统计结束日期 -->
-                <div class="flex-1">
-                    <label class="block text-xs font-medium mb-1" style="color: rgb(var(--text-secondary));">统计结束日期</label>
-                    <input type="date" id="endDate"
-                           class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                           style="height: 38px;">
-                </div>
-
-                <!-- 统计周期 -->
-                <div class="flex-1">
-                    <label class="block text-xs font-medium mb-1" style="color: rgb(var(--text-secondary));">统计周期</label>
-                    <div class="relative">
-                        <select id="groupBy"
-                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                                style="height: 38px; padding-right: 32px;">
-                            <option value="day">按日</option>
-                            <option value="week">按周</option>
-                            <option value="month">按月</option>
-                            <option value="quarter">按季度</option>
-                        </select>
-                        <div class="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: rgb(var(--text-tertiary));"/>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 齿轮按钮 -->
-                <button id="configGroupingBtn"
-                        class="flex items-center justify-center transition-all flex-shrink-0"
-                        style="width: 38px; height: 38px; color: rgb(var(--text-secondary)); border-radius: 6px;"
-                        onmouseover="this.style.backgroundColor='rgba(var(--color-primary), 0.1)'; this.style.color='rgb(var(--color-primary))';"
-                        onmouseout="this.style.backgroundColor='transparent'; this.style.color='rgb(var(--text-secondary))';"
-                        title="配置周期规则">
-                    <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
-                        <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
-                        <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319z"/>
-                    </svg>
-                </button>
-
-                <!-- 显示数据标签 -->
-                <label class="flex items-center cursor-pointer px-4 py-2 transition-all flex-shrink-0"
-                       style="height: 38px; border-radius: 6px; background-color: rgba(var(--color-primary), 0.1);"
-                       onmouseover="this.style.backgroundColor='rgba(var(--color-primary), 0.15)';"
-                       onmouseout="this.style.backgroundColor='rgba(var(--color-primary), 0.1)';">
-                    <input type="checkbox" id="showDataLabels"
-                           class="w-4 h-4 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary/30 cursor-pointer">
-                    <span class="ml-2 text-sm font-medium whitespace-nowrap" style="color: rgb(var(--color-primary));">显示数据标签</span>
-                </label>
-
-                <!-- 生成按钮 -->
-                <button id="generateChart"
-                        class="px-6 py-2 text-sm font-medium text-white rounded-md transition-all shadow-sm flex-shrink-0"
-                        style="height: 38px; background-color: rgb(var(--color-primary));"
-                        onmouseover="this.style.backgroundColor='rgba(var(--color-primary), 0.9)'; this.style.boxShadow='0 2px 8px rgba(var(--color-primary), 0.3)';"
-                        onmouseout="this.style.backgroundColor='rgb(var(--color-primary))'; this.style.boxShadow='0 1px 2px 0 rgba(0, 0, 0, 0.05)';">
-                    生成统计结果
-                </button>
-            </div>
-        </section>
-
-        <!-- 图表展示区 -->
-        <section class="bg-card rounded-lg p-6 card-shadow mb-3">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-semibold">计划ID计数与任务状态趋势图</h2>
-                <div class="flex items-center gap-2">
-                    <button class="chart-download-btn flex items-center justify-center px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition text-sm"
-                            data-chart="mainChart" data-type="image" title="下载图表图片">
-                        <svg class="icon"><use href="#icon-download"/></svg>
-                        <span>下载图表</span>
-                    </button>
-                    <button class="chart-download-btn flex items-center justify-center px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition text-sm"
-                            data-chart="mainChart" data-type="csv" title="下载图表数据">
-                        <svg class="icon"><use href="#icon-table"/></svg>
-                        <span>下载数据</span>
-                    </button>
-                </div>
-            </div>
-
-            <div class="h-96 border border-default rounded-lg p-4 relative">
-                <!-- 图表容器 -->
-                <canvas id="dataChart"></canvas>
-
-                <!-- 空状态提示 -->
-                <div id="chartEmptyState" class="absolute inset-0 flex items-center justify-center text-gray-500 hidden">
-                    <div class="text-center">
-                        <svg class="icon icon-2xl mb-2"><use href="#icon-line-chart"/></svg>
-                        <p>没有数据可显示</p>
-                        <p class="text-sm mt-1">请前往管理页面导入数据并选择正确的时间范围</p>
-                    </div>
-                </div>
-
-                <!-- 错误状态提示 -->
-                <div id="chartErrorState" class="absolute inset-0 flex items-center justify-center text-gray-500 hidden">
-                    <div class="text-center">
-                        <svg class="icon icon-2xl mb-2 text-warning"><use href="#icon-exclamation-triangle"/></svg>
-                        <p id="chartErrorMessage">生成统计结果时出错</p>
-                    </div>
-                </div>
-
-                <!-- 加载状态 -->
-                <div id="chartLoadingState" class="absolute inset-0 flex items-center justify-center bg-card/80 hidden">
-                    <div class="text-center">
-                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
-                        <p>正在从 API 获取并统计数据...</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 统计卡片展示区 -->
-        <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-3">
-            <!-- 总计划数卡片 -->
-            <div class="stat-card bg-card rounded-lg p-6 card-shadow">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <p class="text-sm text-gray-500 font-medium">总计划数</p>
-                        <h3 class="text-3xl font-bold text-primary mt-2" id="totalCount">0</h3>
-                        <p class="text-xs text-gray-400 mt-1">所有周期的计划总数</p>
-                    </div>
-                    <div class="p-3 bg-primary/10 rounded-lg">
-                        <svg class="icon icon-xl text-primary"><use href="#icon-database"/></svg>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 平均周期计划数卡片 -->
-            <div class="stat-card bg-card rounded-lg p-6 card-shadow">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <p class="text-sm text-gray-500 font-medium">平均周期计划数</p>
-                        <h3 class="text-3xl font-bold text-secondary mt-2" id="avgCount">0</h3>
-                        <p class="text-xs text-gray-400 mt-1">所有周期的平均值</p>
-                    </div>
-                    <div class="p-3 bg-secondary/10 rounded-lg">
-                        <svg class="icon icon-xl text-secondary"><use href="#icon-calculator"/></svg>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 总失败圈次卡片 -->
-            <div class="stat-card bg-card rounded-lg p-6 card-shadow">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <p class="text-sm text-gray-500 font-medium">总失败圈次</p>
-                        <h3 class="text-3xl font-bold text-danger mt-2" id="totalFailures">0</h3>
-                        <p class="text-xs text-gray-400 mt-1">所有周期的失败总数</p>
-                    </div>
-                    <div class="p-3 bg-danger/10 rounded-lg">
-                        <svg class="icon icon-xl text-danger"><use href="#icon-exclamation-circle"/></svg>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 平均成功率卡片 -->
-            <div class="stat-card bg-card rounded-lg p-6 card-shadow">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <p class="text-sm text-gray-500 font-medium">平均成功率</p>
-                        <h3 class="text-3xl font-bold text-success mt-2" id="avgSuccessRate">0%</h3>
-                        <p class="text-xs text-gray-400 mt-1">所有周期的平均成功率</p>
-                    </div>
-                    <div class="p-3 bg-success/10 rounded-lg">
-                        <svg class="icon icon-xl text-success"><use href="#icon-check-circle"/></svg>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 新增：最大周期计划数卡片 -->
-            <div class="stat-card bg-card rounded-lg p-6 card-shadow">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <p class="text-sm text-gray-500 font-medium">最大周期计划数</p>
-                        <h3 class="text-3xl font-bold text-accent mt-2" id="maxCount">0</h3>
-                        <p class="text-xs text-gray-400 mt-1">单周期最大计划数</p>
-                    </div>
-                    <div class="p-3 bg-accent/10 rounded-lg">
-                        <svg class="icon icon-xl text-accent"><use href="#icon-arrow-up"/></svg>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 新增：最小周期计划数卡片 -->
-            <div class="stat-card bg-card rounded-lg p-6 card-shadow">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <p class="text-sm text-gray-500 font-medium">最小周期计划数</p>
-                        <h3 class="text-3xl font-bold text-warning mt-2" id="minCount">0</h3>
-                        <p class="text-xs text-gray-400 mt-1">单周期最小计划数</p>
-                    </div>
-                    <div class="p-3 bg-warning/10 rounded-lg">
-                        <svg class="icon icon-xl text-warning"><use href="#icon-arrow-down"/></svg>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 新增：卫星数量卡片 -->
-            <div class="stat-card bg-card rounded-lg p-6 card-shadow cursor-pointer" id="satelliteCountCard">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <p class="text-sm text-gray-500 font-medium">卫星数量</p>
-                        <h3 class="text-3xl font-bold text-primary mt-2" id="satelliteCount">0</h3>
-                        <p class="text-xs text-gray-400 mt-1">点击查看趋势图</p>
-                    </div>
-                    <div class="p-3 bg-primary/10 rounded-lg">
-                        <svg class="icon icon-xl text-primary"><use href="#icon-rocket"/></svg>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 新增：客户数量卡片 -->
-            <div class="stat-card bg-card rounded-lg p-6 card-shadow cursor-pointer" id="customerCountCard">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <p class="text-sm text-gray-500 font-medium">客户数量</p>
-                        <h3 class="text-3xl font-bold text-accent mt-2" id="customerCount">0</h3>
-                        <p class="text-xs text-gray-400 mt-1">点击查看趋势图</p>
-                    </div>
-                    <div class="p-3 bg-accent/10 rounded-lg">
-                        <svg class="icon icon-xl text-accent"><use href="#icon-users"/></svg>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 详细数据表格 -->
-        <section class="bg-card rounded-lg p-6 card-shadow">
-            <h2 class="text-lg font-semibold mb-4">周期统计详情</h2>
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">周期</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">计划ID数量</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">失败圈次</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">成功率</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">周期时间范围（文件时间）</th>
-                        </tr>
-                    </thead>
-                    <tbody id="detailTableBody" class="bg-card divide-y divide-gray-200"></tbody>
-                </table>
-            </div>
-        </section>
-    </main>
-
-    <!-- 周期规则配置模态框 -->
-    <div id="groupingConfigModal" class="fixed inset-0 modal-backdrop flex items-center justify-center z-50 hidden">
-        <div class="bg-card rounded-lg w-full max-w-md p-6 transform transition-all scale-95 opacity-0" id="modalContent">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-semibold">周期规则配置（所有时间均为文件时间）</h3>
-                <button id="closeConfigModal" class="transition-colors" style="color: rgb(var(--text-secondary));"
-                        onmouseover="this.style.color='rgb(var(--text-primary))'"
-                        onmouseout="this.style.color='rgb(var(--text-secondary))'">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
-            </div>
-
-            <!-- 日周期规则 -->
-            <div class="mb-6 pb-4 border-b border-gray-100">
-                <h4 class="font-medium mb-3 flex items-center">
-                    <svg class="icon text-primary mr-2"><use href="#icon-calendar-o"/></svg>按日周期
-                </h4>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm text-gray-600 mb-1">周期起始时间（文件时间）</label>
-                        <input type="time" id="dayStart" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all" value="00:00">
-                    </div>
-                    <div>
-                        <p class="block text-sm text-gray-600 mb-1">周期范围</p>
-                        <div class="p-2 border border-default rounded-md bg-gray-50 text-sm">
-                            X日 <span id="dayStartDisplay">00:00</span> 至 X+1日 <span id="dayEndDisplay">00:00</span>
-                        </div>
-                    </div>
-                </div>
-                <p class="text-xs text-gray-500 mt-2">例如：设置00:00，则8月1日00:00至8月2日00:00的计划归为8月1日</p>
-            </div>
-
-            <!-- 周周期规则 -->
-            <div class="mb-6 pb-4 border-b border-gray-100">
-                <h4 class="font-medium mb-3 flex items-center">
-                    <svg class="icon text-primary mr-2"><use href="#icon-calendar-week-o"/></svg>按周周期
-                </h4>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm text-gray-600 mb-1">周起始日</label>
-                        <select id="weekStartDay" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all">
-                            <option value="0">周日</option>
-                            <option value="1" selected>周一</option>
-                            <option value="2">周二</option>
-                            <option value="3">周三</option>
-                            <option value="4">周四</option>
-                            <option value="5">周五</option>
-                            <option value="6">周六</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm text-gray-600 mb-1">起始时间（文件时间）</label>
-                        <input type="time" id="weekStartTime" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all" value="00:00">
-                    </div>
-                </div>
-            </div>
-
-            <!-- 月周期规则 -->
-            <div class="mb-6 pb-4 border-b border-gray-100">
-                <h4 class="font-medium mb-3 flex items-center">
-                    <svg class="icon text-primary mr-2"><use href="#icon-calendar"/></svg>按月周期
-                </h4>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm text-gray-600 mb-1">月起始日期</label>
-                        <input type="number" id="monthStartDate" min="1" max="31" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all" value="1">
-                    </div>
-                    <div>
-                        <label class="block text-sm text-gray-600 mb-1">起始时间（文件时间）</label>
-                        <input type="time" id="monthStartTime" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all" value="00:00">
-                    </div>
-                </div>
-            </div>
-
-            <!-- 季度周期规则 -->
-            <div class="mb-6">
-                <h4 class="font-medium mb-3 flex items-center">
-                    <svg class="icon text-primary mr-2"><use href="#icon-calendar-check-o"/></svg>按季度周期
-                </h4>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm text-gray-600 mb-1">季度起始月份</label>
-                        <select id="quarterStartMonth" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all">
-                            <option value="1">1月（Q1:1-3月）</option>
-                            <option value="4">4月（Q2:4-6月）</option>
-                            <option value="7">7月（Q3:7-9月）</option>
-                            <option value="10">10月（Q4:10-12月）</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm text-gray-600 mb-1">起始时间（文件时间）</label>
-                        <input type="time" id="quarterStartTime" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all" value="00:00">
-                    </div>
-                </div>
-            </div>
-
-            <button id="saveGroupingConfig" class="w-full px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors transform hover:scale-[1.02] active:scale-[0.98]">
-                保存配置
-            </button>
-        </div>
+        <!-- 数据管理 iframe -->
+        <iframe id="frame-admin" class="page-frame" data-src="pages/admin.html"></iframe>
     </div>
 
-    <!-- 卫星数量趋势图模态框 -->
-    <div id="satelliteCountModal" class="fixed inset-0 modal-backdrop flex items-center justify-center z-50 hidden">
-        <div class="bg-card rounded-lg w-full max-w-4xl mx-4 p-6 transform transition-all scale-95 opacity-0" id="satelliteModalContent">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-semibold">卫星数量趋势分析</h3>
-                <div class="flex items-center gap-2">
-                    <button class="chart-download-btn flex items-center justify-center px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition text-sm"
-                            data-chart="satelliteChart" data-type="image" title="下载图表图片">
-                        <svg class="icon"><use href="#icon-download"/></svg>
-                        <span>下载图表</span>
-                    </button>
-                    <button class="chart-download-btn flex items-center justify-center px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition text-sm"
-                            data-chart="satelliteChart" data-type="csv" title="下载图表数据">
-                        <svg class="icon"><use href="#icon-table"/></svg>
-                        <span>下载数据</span>
-                    </button>
-                    <button id="closeSatelliteModal" class="transition-colors" style="color: rgb(var(--text-secondary));" title="关闭"
-                            onmouseover="this.style.color='rgb(var(--text-primary))'"
-                            onmouseout="this.style.color='rgb(var(--text-secondary))'">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-            
-            <div class="h-96 border border-default rounded-lg p-4 relative">
-                <canvas id="satelliteCountChart"></canvas>
-                
-                <!-- 空状态提示 -->
-                <div id="satelliteChartEmpty" class="absolute inset-0 flex items-center justify-center text-gray-500 hidden">
-                    <div class="text-center">
-                        <svg class="icon icon-2xl mb-2"><use href="#icon-rocket"/></svg>
-                        <p>没有卫星数据可显示</p>
-                    </div>
-                </div>
-                
-                <!-- 加载状态 -->
-                <div id="satelliteChartLoading" class="absolute inset-0 flex items-center justify-center bg-card/80 hidden">
-                    <div class="text-center">
-                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
-                        <p>正在统计卫星数量趋势...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- 核心脚本 - 主题管理器和状态管理器 -->
+    <script src="./public/js/common/config.js"></script>
+    <script src="./public/js/common/state-manager.js"></script>
+    <script src="./public/js/common/theme-manager.js"></script>
 
-    <!-- 客户数量趋势图模态框 -->
-    <div id="customerCountModal" class="fixed inset-0 modal-backdrop flex items-center justify-center z-50 hidden">
-        <div class="bg-card rounded-lg w-full max-w-4xl mx-4 p-6 transform transition-all scale-95 opacity-0" id="customerModalContent">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-semibold">客户数量趋势分析</h3>
-                <div class="flex items-center gap-2">
-                    <button class="chart-download-btn flex items-center justify-center px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition text-sm"
-                            data-chart="customerChart" data-type="image" title="下载图表图片">
-                        <svg class="icon"><use href="#icon-download"/></svg>
-                        <span>下载图表</span>
-                    </button>
-                    <button class="chart-download-btn flex items-center justify-center px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition text-sm"
-                            data-chart="customerChart" data-type="csv" title="下载图表数据">
-                        <svg class="icon"><use href="#icon-table"/></svg>
-                        <span>下载数据</span>
-                    </button>
-                    <button id="closeCustomerModal" class="transition-colors" style="color: rgb(var(--text-secondary));" title="关闭"
-                            onmouseover="this.style.color='rgb(var(--text-primary))'"
-                            onmouseout="this.style.color='rgb(var(--text-secondary))'">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-            
-            <div class="h-96 border border-default rounded-lg p-4 relative">
-                <canvas id="customerCountChart"></canvas>
-                
-                <!-- 空状态提示 -->
-                <div id="customerChartEmpty" class="absolute inset-0 flex items-center justify-center text-gray-500 hidden">
-                    <div class="text-center">
-                        <svg class="icon icon-2xl mb-2"><use href="#icon-users"/></svg>
-                        <p>没有客户数据可显示</p>
-                    </div>
-                </div>
-                
-                <!-- 加载状态 -->
-                <div id="customerChartLoading" class="absolute inset-0 flex items-center justify-center bg-card/80 hidden">
-                    <div class="text-center">
-                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent mb-2"></div>
-                        <p>正在统计客户数量趋势...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <script>
+        /**
+         * SPA 页面切换控制器（iframe 版本）
+         */
+        class SPAController {
+            constructor() {
+                this.currentPage = 'dashboard';
+                this.loadedFrames = new Set(['dashboard']); // 首页已加载
+                this.init();
+            }
 
+            init() {
+                console.log('🚀 SPA 控制器初始化...');
 
-    <!-- 应用脚本 -->
-    <script src="./public/js/common/websocket-manager.js" defer></script>
-    <script src="./public/js/pages/index/satellite-app.js" defer></script>
-    <script src="./public/js/pages/index/main-init.js" defer></script>
+                // 绑定导航点击事件
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const page = link.getAttribute('data-page');
+                        this.navigateTo(page);
+                    });
+                });
 
-    <!-- 主题管理器 -->
-    <script src="./public/js/common/theme-manager.js" defer></script>
+                // 监听浏览器前进/后退
+                window.addEventListener('popstate', (e) => {
+                    const page = e.state?.page || 'dashboard';
+                    this.navigateTo(page, false);
+                });
+
+                // 初始化浏览器历史记录
+                window.history.replaceState({ page: 'dashboard' }, '', '#dashboard');
+
+                console.log('✅ SPA 控制器初始化完成');
+            }
+
+            /**
+             * 导航到指定页面
+             * @param {string} page - 页面名称 (dashboard/trend/admin)
+             * @param {boolean} pushState - 是否推入历史记录
+             */
+            navigateTo(page, pushState = true) {
+                if (page === this.currentPage) return;
+
+                console.log(`🔀 页面切换: ${this.currentPage} → ${page}`);
+
+                // 隐藏当前页面
+                const currentFrame = document.getElementById(`frame-${this.currentPage}`);
+                if (currentFrame) {
+                    currentFrame.classList.remove('active');
+                }
+
+                // 懒加载 iframe
+                const targetFrame = document.getElementById(`frame-${page}`);
+                if (targetFrame && !this.loadedFrames.has(page)) {
+                    const src = targetFrame.getAttribute('data-src');
+                    if (src) {
+                        console.log(`📄 加载页面: ${src}`);
+                        targetFrame.src = src;
+                        this.loadedFrames.add(page);
+
+                        // 监听 iframe 加载完成
+                        targetFrame.addEventListener('load', () => {
+                            console.log(`✅ iframe 加载完成: ${page}`);
+                            console.log(`💡 主题将由 ${page} 页面的 iframe-helper.js 自动应用`);
+                        }, { once: true });
+                    }
+                }
+
+                // 显示目标页面
+                if (targetFrame) {
+                    targetFrame.classList.add('active');
+                }
+
+                // 更新导航栏高亮
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    if (link.getAttribute('data-page') === page) {
+                        link.classList.add('active');
+                    } else {
+                        link.classList.remove('active');
+                    }
+                });
+
+                // 更新浏览器历史记录
+                if (pushState) {
+                    window.history.pushState({ page }, '', `#${page}`);
+                }
+
+                // 更新页面标题
+                const titles = {
+                    'dashboard': '卫星任务数据分析平台',
+                    'trend': '数据趋势分析 - 卫星任务数据分析平台',
+                    'admin': '数据管理 - 卫星任务数据分析平台'
+                };
+                document.title = titles[page] || '卫星任务数据分析平台';
+
+                this.currentPage = page;
+            }
+
+            /**
+             * 获取当前页面
+             */
+            getCurrentPage() {
+                return this.currentPage;
+            }
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            window.spaController = new SPAController();
+            console.log('✅ SPA 控制器已初始化');
+            console.log('💡 提示：主题由各 iframe 的 iframe-helper.js 自动应用');
+        });
+
+        // 全局快捷键支持（可选）
+        document.addEventListener('keydown', (e) => {
+            // Alt + 1/2/3 快速切换页面
+            if (e.altKey && !e.ctrlKey && !e.shiftKey) {
+                const pageMap = {
+                    '1': 'dashboard',
+                    '2': 'trend',
+                    '3': 'admin'
+                };
+                const page = pageMap[e.key];
+                if (page && window.spaController) {
+                    e.preventDefault();
+                    window.spaController.navigateTo(page);
+                }
+            }
+        });
+    </script>
 </body>
 </html>

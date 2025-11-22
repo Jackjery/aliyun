@@ -270,12 +270,65 @@ class SatelliteApp {
 
             this.showLoading(false);
 
+            // 保存图表和表格数据到 IndexedDB
+            if (window.stateRestore) {
+                await this.saveCurrentState(planStats.records, overview.records[0]);
+            }
+
         } catch (error) {
             console.error('❌ 生成统计失败:', error);
             this.showError('生成统计失败: ' + error.message);
             this.showLoading(false);
         } finally {
             this.isLoading = false;
+        }
+    }
+
+    /**
+     * 保存当前图表和表格状态
+     */
+    async saveCurrentState(planStatsRecords, overviewRecord) {
+        try {
+            const chartData = {
+                records: planStatsRecords,
+                groupBy: this.currentFilters.groupBy
+            };
+
+            const tableData = {
+                records: planStatsRecords,
+                overview: overviewRecord
+            };
+
+            await window.stateRestore.saveChartData(chartData);
+            await window.stateRestore.saveTableData(tableData);
+            console.log('💾 图表和表格数据已保存');
+        } catch (error) {
+            console.error('❌ 保存状态失败:', error);
+        }
+    }
+
+    /**
+     * 从保存的数据恢复图表和表格
+     */
+    async restoreFromSavedData(chartData, tableData) {
+        try {
+            console.log('📂 开始恢复图表和表格数据...');
+
+            // 渲染图表
+            if (chartData && chartData.records) {
+                this.renderMainChart(chartData.records, chartData.groupBy);
+                console.log('✅ 图表已恢复');
+            }
+
+            // 更新统计卡片和表格
+            if (tableData && tableData.records && tableData.overview) {
+                this.updateStatsCards(tableData.overview, tableData.records);
+                this.updateDetailTable(tableData.records);
+                console.log('✅ 统计卡片和表格已恢复');
+            }
+
+        } catch (error) {
+            console.error('❌ 恢复数据失败:', error);
         }
     }
 

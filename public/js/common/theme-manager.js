@@ -1,10 +1,10 @@
 /**
- * 🎨 主题管理器 - 支持深色/浅色模式切换 + 多彩主题切换
+ * 🎨 主题管理器 - 支持深色/浅色模式切换 + 多彩主题切换 + 跨页面同步
  * 功能：
  * 1. 深色/浅色模式切换
  * 2. 9种彩色主题切换
- * 3. 自动保存用户偏好
- * 4. 页面加载时自动应用上次选择的主题
+ * 3. 跨页面实时同步主题设置
+ * 4. 页面跳转保留主题，刷新/关闭清空设置
  */
 
 class ThemeManager {
@@ -42,14 +42,11 @@ class ThemeManager {
   /**
    * 初始化主题管理器
    */
-  init() {
+  async init() {
     console.log('🎨 主题管理器初始化...');
 
-    // 从 localStorage 恢复上次的主题设置
-    this.loadThemeFromStorage();
-
-    // 应用主题
-    this.applyTheme();
+    // 应用默认主题
+    this.applyTheme(false);
 
     // 创建主题切换UI
     this.createThemeSwitcher();
@@ -57,37 +54,71 @@ class ThemeManager {
     console.log(`✅ 当前主题: ${this.currentColorTheme} (${this.currentMode}模式)`);
   }
 
-  /**
-   * 从 localStorage 加载主题设置
-   */
-  loadThemeFromStorage() {
-    const savedColorTheme = localStorage.getItem('theme-color');
-    const savedMode = localStorage.getItem('theme-mode');
-
-    if (savedColorTheme && this.themes.colors.find(t => t.id === savedColorTheme)) {
-      this.currentColorTheme = savedColorTheme;
-    }
-
-    if (savedMode && this.themes.modes.find(m => m.id === savedMode)) {
-      this.currentMode = savedMode;
-    }
-  }
 
   /**
-   * 保存主题设置到 localStorage
+   * 检测是否为页面刷新
+   * @returns {boolean} 是否为刷新
    */
-  saveThemeToStorage() {
-    localStorage.setItem('theme-color', this.currentColorTheme);
-    localStorage.setItem('theme-mode', this.currentMode);
+  detectPageRefresh() {
+    // 使用 performance.navigation API 检测导航类型
+    if (performance.navigation) {
+      // type: 0=正常导航, 1=刷新, 2=前进/后退
+      const navigationType = performance.navigation.type;
+      return navigationType === 1; // 1 表示刷新
+    }
+
+    // 新的 PerformanceNavigationTiming API
+    const perfEntries = performance.getEntriesByType('navigation');
+    if (perfEntries.length > 0) {
+      const navEntry = perfEntries[0];
+      return navEntry.type === 'reload'; // 'reload' 表示刷新
+    }
+
+    return false;
   }
+
+
 
   /**
    * 应用主题到页面
+   * @param {boolean} broadcast - 是否广播主题变化
    */
-  applyTheme() {
-    const html = document.documentElement;
-
+  applyTheme(broadcast = true) {
     console.log(`🎨 应用主题: ${this.currentColorTheme} (${this.currentMode}模式)`);
+
+    // 应用到当前页面
+    this.applyThemeToDocument(document);
+
+    // 如果是主框架，应用到所有 iframe
+    if (window === window.top) {
+      this.applyThemeToIframes();
+    }
+
+    // 更新UI状态
+    if (this.updateUI) {
+      this.updateUI();
+    }
+
+    // 触发自定义事件，通知当前页面组件主题已更改
+    window.dispatchEvent(new CustomEvent('themeChanged', {
+      detail: {
+        color: this.currentColorTheme,
+        mode: this.currentMode
+      }
+    }));
+  }
+
+  /**
+   * 应用主题到指定 document
+   * @param {Document} doc - 目标文档对象
+   */
+  applyThemeToDocument(doc) {
+    if (!doc || !doc.documentElement) {
+      console.warn('⚠️ 无效的文档对象，跳过主题应用');
+      return;
+    }
+
+    const html = doc.documentElement;
 
     // 移除所有主题class
     this.themes.colors.forEach(theme => {
@@ -103,33 +134,37 @@ class ThemeManager {
 
     if (colorTheme && colorTheme.class) {
       html.classList.add(colorTheme.class);
-      console.log(`  ✅ 添加颜色主题类: ${colorTheme.class}`);
-    } else {
-      console.log(`  ℹ️ 使用默认颜色主题（无class）`);
     }
 
     if (modeTheme && modeTheme.class) {
       html.classList.add(modeTheme.class);
-      console.log(`  ✅ 添加模式类: ${modeTheme.class}`);
-    } else {
-      console.log(`  ℹ️ 使用浅色模式（无class）`);
     }
 
-    // 保存到 localStorage
-    this.saveThemeToStorage();
-
-    // 更新UI状态
-    if (this.updateUI) {
-      this.updateUI();
+    // 触发重新渲染以确保主题生效
+    if (doc.body) {
+      // 触发强制重绘
+      doc.body.offsetHeight;
     }
 
-    // 触发自定义事件，通知其他组件主题已更改
-    window.dispatchEvent(new CustomEvent('themeChanged', {
-      detail: {
-        color: this.currentColorTheme,
-        mode: this.currentMode
+    console.log(`  🎨 主题已应用: ${this.currentColorTheme} (${this.currentMode})`);
+  }
+
+  /**
+   * 应用主题到所有 iframe（仅主框架调用）
+   */
+  applyThemeToIframes() {
+    const iframes = document.querySelectorAll('iframe.page-frame');
+    iframes.forEach(iframe => {
+      try {
+        if (iframe.contentDocument) {
+          this.applyThemeToDocument(iframe.contentDocument);
+          console.log(`  ✅ 应用主题到 iframe: ${iframe.id}`);
+        }
+      } catch (e) {
+        // 跨域 iframe 无法访问，忽略
+        console.warn(`  ⚠️ 无法访问 iframe: ${iframe.id}`, e);
       }
-    }));
+    });
   }
 
   /**
@@ -190,6 +225,7 @@ class ThemeManager {
       <!-- 主题选择面板 -->
       <div id="theme-panel" class="hidden absolute bottom-16 right-0 bg-white dark:bg-gray-800 rounded-lg shadow-2xl p-4 w-80 animate-fade-in"
            style="display: none; position: absolute; bottom: 64px; right: 0; background: rgb(var(--bg-base)); border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); padding: 16px; width: 320px; color: rgb(var(--text-primary));">
+
         <div class="mb-4">
           <h3 class="text-sm font-semibold mb-3 flex items-center">
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -336,19 +372,26 @@ class ThemeManager {
 
 // 页面加载完成后自动初始化
 if (typeof window !== 'undefined') {
-  // 立即初始化或等待DOMContentLoaded
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
+  // 检测是否在 iframe 中
+  const isInIframe = window !== window.parent;
+
+  if (!isInIframe) {
+    // 只在主框架中初始化
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        window.themeManager = new ThemeManager();
+        console.log('✅ 主题管理器已加载 (主框架)');
+      });
+    } else {
+      // DOM已经加载完成，立即初始化
       window.themeManager = new ThemeManager();
-      console.log('✅ 主题管理器已加载 (DOMContentLoaded)');
-    });
+      console.log('✅ 主题管理器已加载 (主框架 - 立即)');
+    }
   } else {
-    // DOM已经加载完成，立即初始化
-    window.themeManager = new ThemeManager();
-    console.log('✅ 主题管理器已加载 (立即)');
+    console.log('🖼️ 在 iframe 中，等待使用父窗口的主题管理器');
   }
 
-  // 提供手动初始化方法
+  // 提供手动初始化方法（会被 iframe-helper.js 覆盖）
   window.initThemeManager = function() {
     if (!window.themeManager) {
       window.themeManager = new ThemeManager();
