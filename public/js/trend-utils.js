@@ -106,8 +106,11 @@ function convertToChartData(records, dimensionField, valueField = 'record_count'
             const record = records.find(r =>
                 r.period === period && r[dimensionField] === dimension
             );
-            // 使用 ?? 确保0值不被当作 falsy 跳过
-            return record ? (record[valueField] ?? 0) : 0;
+            // 强制转换为数字，确保0值不被跳过
+            const rawValue = record ? record[valueField] : 0;
+            const numValue = Number(rawValue);
+            // 使用 isNaN 检查，确保0值被正确保留
+            return isNaN(numValue) ? 0 : numValue;
         });
 
         return {
@@ -123,7 +126,8 @@ function convertToChartData(records, dimensionField, valueField = 'record_count'
             pointHoverRadius: 5,  // 悬停时稍大
             fill: true,           // 填充区域
             tension: 0.4,         // 平滑曲线
-            spanGaps: false       // 不跳过0值，确保显示所有数据点
+            spanGaps: false,      // 不跳过空值
+            showLine: true        // 确保始终显示线条
         };
     });
 

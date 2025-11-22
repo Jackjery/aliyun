@@ -1250,7 +1250,8 @@ class TrendAnalysisApp {
                         display: true,
                         text: '数量'
                     },
-                    beginAtZero: true
+                    beginAtZero: true,
+                    min: 0  // 明确设置最小值为0，确保0值点显示
                 }
             }
         };
@@ -1306,7 +1307,7 @@ class TrendAnalysisApp {
                 background: rgba(0, 0, 0, 0.9);
                 color: white;
                 border-radius: 8px;
-                pointer-events: none;
+                pointer-events: auto;
                 transition: all 0.1s ease;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
                 z-index: 9999;
