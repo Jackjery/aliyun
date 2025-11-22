@@ -420,15 +420,27 @@ class TrendAnalysisApp {
 
         if (closeBtn && modal) {
             closeBtn.addEventListener('click', () => {
-                modal.classList.add('hidden');
+                this.hideCycleRulesModal();
             });
         }
 
         if (saveBtn && modal) {
             saveBtn.addEventListener('click', () => {
                 this.saveCycleRules();
-                modal.classList.add('hidden');
+                this.hideCycleRulesModal();
                 this.triggerAutoApply();
+            });
+        }
+
+        // 日周期时间输入实时更新显示
+        const dayStartInput = document.getElementById('dayStart');
+        if (dayStartInput) {
+            dayStartInput.addEventListener('input', (e) => {
+                const startTime = e.target.value;
+                const dayStartDisplay = document.getElementById('dayStartDisplay');
+                const dayEndDisplay = document.getElementById('dayEndDisplay');
+                if (dayStartDisplay) dayStartDisplay.textContent = startTime;
+                if (dayEndDisplay) dayEndDisplay.textContent = startTime;
             });
         }
 
@@ -440,7 +452,34 @@ class TrendAnalysisApp {
      */
     showCycleRulesModal() {
         const modal = document.getElementById('groupingConfigModal');
-        if (modal) modal.classList.remove('hidden');
+        if (modal) {
+            // 加载当前配置到表单
+            this.loadConfigToForm();
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                const modalContent = document.getElementById('modalContent');
+                if (modalContent) {
+                    modalContent.classList.remove('scale-95', 'opacity-0');
+                }
+            }, 10);
+        }
+    }
+
+    /**
+     * 隐藏周期规则模态框
+     */
+    hideCycleRulesModal() {
+        const modal = document.getElementById('groupingConfigModal');
+        if (modal) {
+            const modalContent = document.getElementById('modalContent');
+            if (modalContent) {
+                modalContent.classList.add('scale-95', 'opacity-0');
+            }
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
     }
 
     /**
@@ -498,6 +537,41 @@ class TrendAnalysisApp {
             month: { startDate: '1', startTime: '00:00' },
             quarter: { startMonth: '1', startTime: '00:00' }
         };
+    }
+
+    /**
+     * 加载配置到表单
+     */
+    loadConfigToForm() {
+        // 日周期
+        const dayStartTime = this.cycleRules.day.start;
+        const dayStartInput = document.getElementById('dayStart');
+        const dayStartDisplay = document.getElementById('dayStartDisplay');
+        const dayEndDisplay = document.getElementById('dayEndDisplay');
+
+        if (dayStartInput) dayStartInput.value = dayStartTime;
+        if (dayStartDisplay) dayStartDisplay.textContent = dayStartTime;
+        if (dayEndDisplay) dayEndDisplay.textContent = dayStartTime;
+
+        // 周周期
+        const weekStartDay = document.getElementById('weekStartDay');
+        const weekStartTime = document.getElementById('weekStartTime');
+        if (weekStartDay) weekStartDay.value = this.cycleRules.week.startDay;
+        if (weekStartTime) weekStartTime.value = this.cycleRules.week.startTime;
+
+        // 月周期
+        const monthStartDate = document.getElementById('monthStartDate');
+        const monthStartTime = document.getElementById('monthStartTime');
+        if (monthStartDate) monthStartDate.value = this.cycleRules.month.startDate;
+        if (monthStartTime) monthStartTime.value = this.cycleRules.month.startTime;
+
+        // 季度周期
+        const quarterStartMonth = document.getElementById('quarterStartMonth');
+        const quarterStartTime = document.getElementById('quarterStartTime');
+        if (quarterStartMonth) quarterStartMonth.value = this.cycleRules.quarter.startMonth;
+        if (quarterStartTime) quarterStartTime.value = this.cycleRules.quarter.startTime;
+
+        console.log('📋 配置已加载到表单', this.cycleRules);
     }
 
     /**
@@ -1084,6 +1158,10 @@ class TrendAnalysisApp {
         return {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',  // 交互模式：显示同一索引位置的所有数据
+                intersect: false // 不需要精确悬停在点上
+            },
             plugins: {
                 title: {
                     display: false
@@ -1091,6 +1169,26 @@ class TrendAnalysisApp {
                 legend: {
                     display: true,
                     position: 'top'
+                },
+                tooltip: {
+                    mode: 'index',      // 显示所有数据集在同一个X轴位置的值
+                    intersect: false,   // 不需要精确悬停在点上
+                    callbacks: {
+                        title: (context) => {
+                            // 显示时间点
+                            return context[0].label;
+                        },
+                        label: (context) => {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += context.parsed.y;
+                            }
+                            return label;
+                        }
+                    }
                 },
                 datalabels: {
                     display: this.showDataLabels,
