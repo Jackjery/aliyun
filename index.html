@@ -23,7 +23,7 @@
     <link rel="stylesheet" href="./public/css/icons.css">
 
     <!-- 配置文件 - 必须最先加载 -->
-    <script src="./public/js/config.js"></script>
+    <script src="./public/js/common/config.js"></script>
 
     <!-- 图表库 - 移除defer确保顺序加载 -->
     <script src="./public/lib/chart.min.js"></script>
@@ -38,6 +38,20 @@
             console.error('❌ Chart.js或datalabels插件未正确加载');
         }
     </script>
+
+    <style>
+        /* 下载按钮文字水平居中 - 参照trend-analysis.html */
+        button.chart-download-btn {
+            gap: 4px !important;
+            padding-left: 10px !important;
+            padding-right: 10px !important;
+        }
+
+        /* 整体内容向左偏移10px实现视觉居中 */
+        button.chart-download-btn > * {
+            transform: translateX(-10px);
+        }
+    </style>
 </head>
 <body style="background-color: rgb(var(--bg-primary)); min-height: 100vh; color: rgb(var(--text-primary)); transition: all 0.3s;">
     <!-- SVG图标库 - 异步加载不阻塞渲染 -->
@@ -104,8 +118,8 @@
             <nav class="hidden md:flex items-center space-x-6">
                 <a href="index.html" class="text-primary font-medium border-b-2 border-primary px-1 py-5">首页</a>
                 <a href="trend-analysis.html" class="text-gray-600 hover:text-primary transition-colors px-1 py-5">数据趋势分析</a>
-                 <a href="data-distribution.html" class="text-gray-600 hover:text-primary transition-colors px-1 py-5">数据分布</a>
-                 <a href="circle-warning.html" class="text-gray-600 hover:text-primary transition-colors px-1 py-5">数据预警</a>
+                 <a href="data-distribution.html" class="text-gray-600 hover:text-primary transition-colors px-1 py-5">任务分布</a>
+                 <a href="circle-warning.html" class="text-gray-600 hover:text-primary transition-colors px-1 py-5">圈次数量预警</a>
                  <a href="admin.html" class="text-gray-600 hover:text-primary transition-colors px-1 py-5">
                     <svg class="icon mr-1 inline-block" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                         <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
@@ -203,13 +217,15 @@
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-lg font-semibold">计划ID计数与任务状态趋势图</h2>
                 <div class="flex items-center gap-2">
-                    <button class="chart-download-btn px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition text-sm"
+                    <button class="chart-download-btn flex items-center justify-center px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition text-sm"
                             data-chart="mainChart" data-type="image" title="下载图表图片">
-                        <svg class="icon mr-1"><use href="#icon-download"/></svg>下载图表
+                        <svg class="icon"><use href="#icon-download"/></svg>
+                        <span>下载图表</span>
                     </button>
-                    <button class="chart-download-btn px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition text-sm"
+                    <button class="chart-download-btn flex items-center justify-center px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition text-sm"
                             data-chart="mainChart" data-type="csv" title="下载图表数据">
-                        <svg class="icon mr-1"><use href="#icon-table"/></svg>下载数据
+                        <svg class="icon"><use href="#icon-table"/></svg>
+                        <span>下载数据</span>
                     </button>
                 </div>
             </div>
@@ -490,13 +506,15 @@
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-semibold">卫星数量趋势分析</h3>
                 <div class="flex items-center gap-2">
-                    <button class="chart-download-btn px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition text-sm"
+                    <button class="chart-download-btn flex items-center justify-center px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition text-sm"
                             data-chart="satelliteChart" data-type="image" title="下载图表图片">
-                        <svg class="icon mr-1"><use href="#icon-download"/></svg>下载图表
+                        <svg class="icon"><use href="#icon-download"/></svg>
+                        <span>下载图表</span>
                     </button>
-                    <button class="chart-download-btn px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition text-sm"
+                    <button class="chart-download-btn flex items-center justify-center px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition text-sm"
                             data-chart="satelliteChart" data-type="csv" title="下载图表数据">
-                        <svg class="icon mr-1"><use href="#icon-table"/></svg>下载数据
+                        <svg class="icon"><use href="#icon-table"/></svg>
+                        <span>下载数据</span>
                     </button>
                     <button id="closeSatelliteModal" class="transition-colors" style="color: rgb(var(--text-secondary));" title="关闭"
                             onmouseover="this.style.color='rgb(var(--text-primary))'"
@@ -536,13 +554,15 @@
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-semibold">客户数量趋势分析</h3>
                 <div class="flex items-center gap-2">
-                    <button class="chart-download-btn px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition text-sm"
+                    <button class="chart-download-btn flex items-center justify-center px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition text-sm"
                             data-chart="customerChart" data-type="image" title="下载图表图片">
-                        <svg class="icon mr-1"><use href="#icon-download"/></svg>下载图表
+                        <svg class="icon"><use href="#icon-download"/></svg>
+                        <span>下载图表</span>
                     </button>
-                    <button class="chart-download-btn px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition text-sm"
+                    <button class="chart-download-btn flex items-center justify-center px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition text-sm"
                             data-chart="customerChart" data-type="csv" title="下载图表数据">
-                        <svg class="icon mr-1"><use href="#icon-table"/></svg>下载数据
+                        <svg class="icon"><use href="#icon-table"/></svg>
+                        <span>下载数据</span>
                     </button>
                     <button id="closeCustomerModal" class="transition-colors" style="color: rgb(var(--text-secondary));" title="关闭"
                             onmouseover="this.style.color='rgb(var(--text-primary))'"
@@ -578,11 +598,11 @@
 
 
     <!-- 应用脚本 -->
-    <script src="./public/js/websocket-manager.js" defer></script>
-    <script src="./public/js/satellite-app.js" defer></script>
-    <script src="./public/js/main-init.js" defer></script>
+    <script src="./public/js/common/websocket-manager.js" defer></script>
+    <script src="./public/js/pages/index/satellite-app.js" defer></script>
+    <script src="./public/js/pages/index/main-init.js" defer></script>
 
     <!-- 主题管理器 -->
-    <script src="./public/js/theme-manager.js" defer></script>
+    <script src="./public/js/common/theme-manager.js" defer></script>
 </body>
 </html>
