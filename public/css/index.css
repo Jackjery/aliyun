@@ -1,0 +1,30 @@
+/* ========== Index 页面专用样式 ========== */
+
+/* 下载按钮文字水平居中 - 参照trend-analysis.html */
+button.chart-download-btn {
+    gap: 4px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+}
+
+/* 整体内容向左偏移10px实现视觉居中 */
+button.chart-download-btn > * {
+    transform: translateX(-10px);
+}
+
+/* 所有模态框毛玻璃效果 - 参照trend-analysis.css */
+#groupingConfigModal,
+#satelliteCountModal,
+#customerCountModal {
+    z-index: 9999 !important; /* 悬浮在所有层最上方 */
+}
+
+#groupingConfigModal #modalContent.bg-card,
+#satelliteCountModal #satelliteModalContent.bg-card,
+#customerCountModal #customerModalContent.bg-card {
+    background: rgba(var(--bg-card), 0.95) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15) !important;
+    border: 1px solid rgb(var(--border-color)) !important;
+}

@@ -69,6 +69,25 @@
 
 .sticky-filter-section input[type="date"] {
     height: 32px;
+    display: flex;
+    align-items: center;
+}
+
+.sticky-filter-section input[type="date"]::-webkit-calendar-picker-indicator {
+    position: absolute;
+    right: 8px;
+    cursor: pointer;
+}
+
+input[type="date"].filter-select {
+    position: relative;
+    padding-right: 32px;
+}
+
+input[type="date"].filter-select::-webkit-calendar-picker-indicator {
+    position: absolute;
+    right: 8px;
+    cursor: pointer;
 }
 
 .sticky-filter-section select {
