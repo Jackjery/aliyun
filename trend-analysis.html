@@ -39,19 +39,231 @@
     </script>
 
     <style>
+        /* ========== 筛选框容器 ========== */
+        .dropdown-container {
+            position: relative;
+            width: 100%;
+        }
+
+        /* ========== 筛选框主体（统一高度38px） ========== */
         .filter-select {
             width: 100%;
-            padding: 0.5rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.375rem;
+            min-height: 38px;
+            padding: 6px 12px;
+            border: 1px solid rgb(var(--border-color));
+            border-radius: 6px;
+            background: rgb(var(--bg-card));
+            cursor: pointer;
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        .filter-select:focus {
+
+        .filter-select:hover {
+            border-color: rgb(var(--color-primary));
+            box-shadow: 0 0 0 3px rgba(var(--color-primary), 0.1);
+        }
+
+        .filter-select.dropdown-open {
+            border-color: rgb(var(--color-primary));
+            box-shadow: 0 0 0 3px rgba(var(--color-primary), 0.1);
+        }
+
+        /* 左侧标签区（flex-1自动占据剩余空间） */
+        .selected-tags-inline {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        /* 占位符 */
+        .selected-tags-inline .placeholder {
+            color: rgb(var(--text-tertiary));
+            font-size: 14px;
+        }
+
+        /* 已选标签（仅第一个） */
+        .selected-tag-inline {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            background: rgba(var(--color-primary), 0.1);
+            color: rgb(var(--color-primary));
+            border-radius: 12px;
+            font-size: 12px;
+            white-space: nowrap;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .selected-tag-inline .tag-remove {
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+            padding: 0 2px;
+            flex-shrink: 0;
+        }
+
+        .selected-tag-inline .tag-remove:hover {
+            color: rgb(var(--color-danger, 239, 68, 68));
+        }
+
+        /* +N 数字 */
+        .more-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px 6px;
+            background: rgba(var(--color-primary), 0.15);
+            color: rgb(var(--color-primary));
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        /* 搜索框（展开时显示） */
+        .filter-search-inline {
+            display: none;
+            flex: 0 0 140px;
+            position: relative;
+        }
+
+        .filter-select.dropdown-open .filter-search-inline {
+            display: block;
+        }
+
+        .filter-search-inline input {
+            width: 100%;
+            padding: 4px 8px 4px 24px;
+            border: 1px solid rgb(var(--border-color));
+            border-radius: 4px;
+            font-size: 12px;
+            background: rgb(var(--bg-base));
+            color: rgb(var(--text-primary));
             outline: none;
-            ring: 2px;
-            ring-color: rgba(22, 93, 255, 0.3);
-            border-color: #165DFF;
         }
+
+        .filter-search-inline input:focus {
+            border-color: rgb(var(--color-primary));
+        }
+
+        .filter-search-inline .search-icon {
+            position: absolute;
+            left: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 14px;
+            color: rgb(var(--text-tertiary));
+            pointer-events: none;
+        }
+
+        /* 下拉箭头 */
+        .dropdown-arrow {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            color: rgb(var(--text-secondary));
+            transition: transform 0.2s;
+        }
+
+        .filter-select.dropdown-open .dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
+        /* ========== 下拉面板（卡片式） ========== */
+        .dropdown-content {
+            position: absolute;
+            z-index: 1000;
+            width: 100%;
+            min-width: 200px;
+            margin-top: 4px;
+            background: rgb(var(--bg-card));
+            border: 1px solid rgb(var(--border-color));
+            border-radius: 8px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            max-height: 320px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 选项列表容器 */
+        .dropdown-options-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 4px;
+        }
+
+        /* 选项项（紧凑 + 柔和悬停） */
+        .dropdown-option-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+            font-size: 13px;
+            color: rgb(var(--text-primary));
+        }
+
+        .dropdown-option-item:hover {
+            background: rgba(var(--color-primary), 0.06);
+        }
+
+        .dropdown-option-item.selected {
+            background: rgba(var(--color-primary), 0.12);
+        }
+
+        /* 复选框 */
+        .dropdown-option-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            cursor: pointer;
+            flex-shrink: 0;
+            accent-color: rgb(var(--color-primary));
+        }
+
+        /* 全选底部 */
+        .dropdown-footer {
+            border-top: 1px solid rgb(var(--border-color));
+            padding: 6px 8px;
+            background: rgba(var(--bg-base), 0.5);
+        }
+
+        .select-all-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: rgb(var(--text-primary));
+            transition: background 0.15s ease;
+        }
+
+        .select-all-item:hover {
+            background: rgba(var(--color-primary), 0.06);
+        }
+
+        .select-all-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: rgb(var(--color-primary));
+        }
+
+        /* 旧样式兼容 */
         .tab-item {
             padding: 0.5rem 1rem;
             border-radius: 0.375rem;
@@ -59,71 +271,15 @@
             transition: all 0.2s;
         }
         .tab-item-active {
-            background-color: #165DFF;
+            background-color: rgb(var(--color-primary));
             color: white;
         }
         .tab-item-inactive {
-            background-color: #f3f4f6;
-            color: #374151;
+            background-color: rgba(var(--text-tertiary), 0.1);
+            color: rgb(var(--text-primary));
         }
         .tab-item-inactive:hover {
-            background-color: #e5e7eb;
-        }
-        .dropdown-container {
-            position: relative;
-        }
-        .dropdown-content {
-            position: absolute;
-            z-index: 10;
-            width: 100%;
-            margin-top: 0.25rem;
-            background-color: rgb(var(--bg-card));
-            border: 1px solid rgb(var(--border-default));
-            border-radius: 0.375rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            max-height: 15rem;
-            overflow-y: auto;
-        }
-        .multiselect-checkbox {
-            margin-right: 0.5rem;
-            height: 1rem;
-            width: 1rem;
-            color: #165DFF;
-            border-color: #d1d5db;
-            border-radius: 0.25rem;
-        }
-        .selected-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-top: 0.25rem;
-        }
-        .selected-tag {
-            background-color: rgba(22, 93, 255, 0.1);
-            color: #165DFF;
-            font-size: 0.75rem;
-            padding: 0.25rem 0.5rem;
-            border-radius: 9999px;
-            display: flex;
-            align-items: center;
-        }
-        .tag-remove {
-            margin-left: 0.25rem;
-            cursor: pointer;
-        }
-        .tag-remove:hover {
-            color: rgba(22, 93, 255, 0.8);
-        }
-        .select-all-item {
-            padding: 0.5rem 1rem;
-            border-bottom: 1px solid #f3f4f6;
-            font-weight: 500;
-            color: #165DFF;
-            cursor: pointer;
-        }
-        .select-all-item:hover {
-            background-color: rgba(22, 93, 255, 0.05);
+            background-color: rgba(var(--text-tertiary), 0.15);
         }
 
         /* 自定义滚动条样式（用于 tooltip） */
@@ -295,17 +451,22 @@
                 <!-- 测站名称筛选 -->
                 <div class="dropdown-container">
                     <label class="block text-sm font-medium text-gray-700 mb-1">测站名称 <span class="text-xs text-gray-500">(可多选)</span></label>
-                    <div class="flex items-center justify-between filter-select cursor-pointer" id="stationDropdown">
-                        <span id="stationDisplay">请选择测站</span>
-                        <svg class="icon icon-sm"><use href="#icon-chevron-down"/></svg>
-                    </div>
-                    <div class="selected-tags" id="stationTags"></div>
-                    <div class="dropdown-content hidden" id="stationOptions">
-                        <div class="p-2 border-b border-gray-100">
-                            <input type="text" placeholder="搜索测站..." class="w-full p-1 text-sm border border-gray-200 rounded" id="stationSearch">
+                    <div class="filter-select cursor-pointer" id="stationDropdown">
+                        <div class="selected-tags-inline" id="stationTags">
+                            <span class="placeholder" id="stationDisplay" data-placeholder="请选择测站">请选择测站</span>
                         </div>
-                        <div class="select-all-item" id="selectAllStations">
-                            <svg class="icon mr-2"><use href="#icon-check-square-o"/></svg>全选
+                        <div class="filter-search-inline">
+                            <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            <input type="text" placeholder="搜索..." id="stationSearch">
+                        </div>
+                        <svg class="dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </div>
+                    <div class="dropdown-content hidden" id="stationOptions">
+                        <div class="dropdown-options-list"></div>
+                        <div class="dropdown-footer">
+                            <div class="select-all-item" id="selectAllStations">
+                                <input type="checkbox"><span>全选</span>
+                            </div>
                         </div>
                     </div>
                     <input type="hidden" id="stationValue" value="">
@@ -314,17 +475,22 @@
                 <!-- 客户名称筛选 -->
                 <div class="dropdown-container">
                     <label class="block text-sm font-medium text-gray-700 mb-1">客户名称 <span class="text-xs text-gray-500">(可多选)</span></label>
-                    <div class="flex items-center justify-between filter-select cursor-pointer" id="customerDropdown">
-                        <span id="customerDisplay">请选择客户</span>
-                        <svg class="icon icon-sm"><use href="#icon-chevron-down"/></svg>
-                    </div>
-                    <div class="selected-tags" id="customerTags"></div>
-                    <div class="dropdown-content hidden" id="customerOptions">
-                        <div class="p-2 border-b border-gray-100">
-                            <input type="text" placeholder="搜索客户..." class="w-full p-1 text-sm border border-gray-200 rounded" id="customerSearch">
+                    <div class="filter-select cursor-pointer" id="customerDropdown">
+                        <div class="selected-tags-inline" id="customerTags">
+                            <span class="placeholder" id="customerDisplay" data-placeholder="请选择客户">请选择客户</span>
                         </div>
-                        <div class="select-all-item" id="selectAllCustomers">
-                            <svg class="icon mr-2"><use href="#icon-check-square-o"/></svg>全选
+                        <div class="filter-search-inline">
+                            <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            <input type="text" placeholder="搜索..." id="customerSearch">
+                        </div>
+                        <svg class="dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </div>
+                    <div class="dropdown-content hidden" id="customerOptions">
+                        <div class="dropdown-options-list"></div>
+                        <div class="dropdown-footer">
+                            <div class="select-all-item" id="selectAllCustomers">
+                                <input type="checkbox"><span>全选</span>
+                            </div>
                         </div>
                     </div>
                     <input type="hidden" id="customerValue" value="">
@@ -333,17 +499,22 @@
                 <!-- 卫星名称筛选 -->
                 <div class="dropdown-container">
                     <label class="block text-sm font-medium text-gray-700 mb-1">卫星名称 <span class="text-xs text-gray-500">(可多选)</span></label>
-                    <div class="flex items-center justify-between filter-select cursor-pointer" id="satelliteDropdown">
-                        <span id="satelliteDisplay">请选择卫星</span>
-                        <svg class="icon icon-sm"><use href="#icon-chevron-down"/></svg>
-                    </div>
-                    <div class="selected-tags" id="satelliteTags"></div>
-                    <div class="dropdown-content hidden" id="satelliteOptions">
-                        <div class="p-2 border-b border-gray-100">
-                            <input type="text" placeholder="搜索卫星..." class="w-full p-1 text-sm border border-gray-200 rounded" id="satelliteSearch">
+                    <div class="filter-select cursor-pointer" id="satelliteDropdown">
+                        <div class="selected-tags-inline" id="satelliteTags">
+                            <span class="placeholder" id="satelliteDisplay" data-placeholder="请选择卫星">请选择卫星</span>
                         </div>
-                        <div class="select-all-item" id="selectAllSatellites">
-                            <svg class="icon mr-2"><use href="#icon-check-square-o"/></svg>全选
+                        <div class="filter-search-inline">
+                            <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            <input type="text" placeholder="搜索..." id="satelliteSearch">
+                        </div>
+                        <svg class="dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </div>
+                    <div class="dropdown-content hidden" id="satelliteOptions">
+                        <div class="dropdown-options-list"></div>
+                        <div class="dropdown-footer">
+                            <div class="select-all-item" id="selectAllSatellites">
+                                <input type="checkbox"><span>全选</span>
+                            </div>
                         </div>
                     </div>
                     <input type="hidden" id="satelliteValue" value="">
@@ -352,17 +523,22 @@
                 <!-- 任务类型筛选 -->
                 <div class="dropdown-container">
                     <label class="block text-sm font-medium text-gray-700 mb-1">任务类型 <span class="text-xs text-gray-500">(可多选)</span></label>
-                    <div class="flex items-center justify-between filter-select cursor-pointer" id="typeDropdown">
-                        <span id="typeDisplay">请选择任务类型</span>
-                        <svg class="icon icon-sm"><use href="#icon-chevron-down"/></svg>
-                    </div>
-                    <div class="selected-tags" id="typeTags"></div>
-                    <div class="dropdown-content hidden" id="typeOptions">
-                        <div class="p-2 border-b border-gray-100">
-                            <input type="text" placeholder="搜索类型..." class="w-full p-1 text-sm border border-gray-200 rounded" id="typeSearch">
+                    <div class="filter-select cursor-pointer" id="typeDropdown">
+                        <div class="selected-tags-inline" id="typeTags">
+                            <span class="placeholder" id="typeDisplay" data-placeholder="请选择任务类型">请选择任务类型</span>
                         </div>
-                        <div class="select-all-item" id="selectAllTypes">
-                            <svg class="icon mr-2"><use href="#icon-check-square-o"/></svg>全选
+                        <div class="filter-search-inline">
+                            <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            <input type="text" placeholder="搜索..." id="typeSearch">
+                        </div>
+                        <svg class="dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </div>
+                    <div class="dropdown-content hidden" id="typeOptions">
+                        <div class="dropdown-options-list"></div>
+                        <div class="dropdown-footer">
+                            <div class="select-all-item" id="selectAllTypes">
+                                <input type="checkbox"><span>全选</span>
+                            </div>
                         </div>
                     </div>
                     <input type="hidden" id="typeValue" value="">
@@ -371,11 +547,26 @@
                 <!-- 任务结果状态筛选 -->
                 <div class="dropdown-container">
                     <label class="block text-sm font-medium text-gray-700 mb-1">任务结果状态 <span class="text-xs text-gray-500">(可多选)</span></label>
-                    <div class="flex items-center justify-between filter-select cursor-pointer" id="statusDropdown">
-                        <span id="statusDisplay">请选择任务状态</span>
-                        <svg class="icon icon-sm"><use href="#icon-chevron-down"/></svg>
+                    <div class="filter-select cursor-pointer" id="statusDropdown">
+                        <div class="selected-tags-inline" id="statusTags">
+                            <span class="placeholder" id="statusDisplay" data-placeholder="请选择任务状态">请选择任务状态</span>
+                        </div>
+                        <div class="filter-search-inline">
+                            <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            <input type="text" placeholder="搜索..." id="statusSearch">
+                        </div>
+                        <svg class="dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                     </div>
-                    <div class="selected-tags" id="statusTags"></div>
+                    <div class="dropdown-content hidden" id="statusOptions">
+                        <div class="dropdown-options-list"></div>
+                        <div class="dropdown-footer">
+                            <div class="select-all-item" id="selectAllStatuses">
+                                <input type="checkbox"><span>全选</span>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="statusValue" value="">
+                </div>
                     <div class="dropdown-content hidden" id="statusOptions">
                         <div class="p-2 border-b border-gray-100">
                             <input type="text" placeholder="搜索状态..." class="w-full p-1 text-sm border border-gray-200 rounded" id="statusSearch">
@@ -396,18 +587,23 @@
                 <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
                     <span>测站名称趋势分析</span>
                     <div class="flex items-center gap-3">
-                        <div class="dropdown-container relative">
-                            <div class="flex items-center justify-between filter-select cursor-pointer min-w-[180px]" id="stationChartDropdown">
-                                <span id="stationChartDisplay" class="text-sm truncate">请选择测站</span>
-                                <svg class="icon icon-sm ml-2"><use href="#icon-chevron-down"/></svg>
-                            </div>
-                            <div class="selected-tags" id="stationChartTags"></div>
-                            <div class="dropdown-content hidden absolute top-full left-0 z-50 bg-card border border-default rounded-md shadow-lg min-w-[200px]" id="stationChartOptions">
-                                <div class="p-2 border-b border-gray-100">
-                                    <input type="text" placeholder="搜索测站..." class="w-full p-1 text-sm border border-gray-200 rounded" id="stationChartSearch">
+                        <div class="dropdown-container relative" style="min-width: 160px;">
+                            <div class="filter-select cursor-pointer" id="stationChartDropdown" style="font-size: 13px;">
+                                <div class="selected-tags-inline" id="stationChartTags">
+                                    <span class="placeholder" id="stationChartDisplay" data-placeholder="请选择测站">请选择测站</span>
                                 </div>
-                                <div class="select-all-item" id="selectAllStationChart">
-                                    <svg class="icon mr-2"><use href="#icon-check-square-o"/></svg>全选
+                                <div class="filter-search-inline">
+                                    <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                                    <input type="text" placeholder="搜索..." id="stationChartSearch">
+                                </div>
+                                <svg class="dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </div>
+                            <div class="dropdown-content hidden" id="stationChartOptions">
+                                <div class="dropdown-options-list"></div>
+                                <div class="dropdown-footer">
+                                    <div class="select-all-item" id="selectAllStationChart">
+                                        <input type="checkbox"><span>全选</span>
+                                    </div>
                                 </div>
                             </div>
                             <input type="hidden" id="stationChartValue" value="">
