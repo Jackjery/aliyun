@@ -385,7 +385,9 @@
         <div class="bg-card rounded-lg w-full max-w-md p-6 transform transition-all scale-95 opacity-0" id="modalContent">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-semibold">周期规则配置（所有时间均为文件时间）</h3>
-                <button id="closeConfigModal" class="text-gray-500 hover:text-gray-700 transition-colors">
+                <button id="closeConfigModal" class="transition-colors" style="color: rgb(var(--text-secondary));"
+                        onmouseover="this.style.color='rgb(var(--text-primary))'"
+                        onmouseout="this.style.color='rgb(var(--text-secondary))'">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
@@ -496,7 +498,9 @@
                             data-chart="satelliteChart" data-type="csv" title="下载图表数据">
                         <svg class="icon mr-1"><use href="#icon-table"/></svg>下载数据
                     </button>
-                    <button id="closeSatelliteModal" class="text-gray-500 hover:text-gray-700 transition-colors" title="关闭">
+                    <button id="closeSatelliteModal" class="transition-colors" style="color: rgb(var(--text-secondary));" title="关闭"
+                            onmouseover="this.style.color='rgb(var(--text-primary))'"
+                            onmouseout="this.style.color='rgb(var(--text-secondary))'">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
@@ -540,7 +544,9 @@
                             data-chart="customerChart" data-type="csv" title="下载图表数据">
                         <svg class="icon mr-1"><use href="#icon-table"/></svg>下载数据
                     </button>
-                    <button id="closeCustomerModal" class="text-gray-500 hover:text-gray-700 transition-colors" title="关闭">
+                    <button id="closeCustomerModal" class="transition-colors" style="color: rgb(var(--text-secondary));" title="关闭"
+                            onmouseover="this.style.color='rgb(var(--text-primary))'"
+                            onmouseout="this.style.color='rgb(var(--text-secondary))'">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>

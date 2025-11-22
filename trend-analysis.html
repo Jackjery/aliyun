@@ -4,18 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>数据趋势分析 - 卫星任务数据分析平台</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg">
 
-    <!-- CSS -->
-    <link rel="stylesheet" href="./public/css/output.css">
-    <link rel="stylesheet" href="./public/css/icons.css">
+    <!-- 🚀 性能优化：预解析API和WebSocket服务器，减少首次请求延迟 -->
+    <link rel="dns-prefetch" href="https://records-bsjjdmpsel.cn-hangzhou.fcapp.run">
+    <link rel="preconnect" href="https://records-bsjjdmpsel.cn-hangzhou.fcapp.run">
+    <link rel="dns-prefetch" href="https://ws.nxjyx.com.cn">
+    <link rel="preconnect" href="https://ws.nxjyx.com.cn">
+
+    <!-- 🎨 主题系统 - 支持深色/浅色模式 + 多彩主题切换 -->
     <link rel="stylesheet" href="./public/css/themes.css">
+
+    <!-- 本地资源 - 极简SVG方案 -->
+    <!-- 本地Tailwind CSS -->
+    <link rel="stylesheet" href="./public/css/output.css">
+    <!-- 本地图标系统 -->
+    <link rel="stylesheet" href="./public/css/icons.css">
 
     <!-- 配置文件 - 必须最先加载 -->
     <script src="./public/js/config.js"></script>
 
-    <!-- 延迟加载的脚本 -->
-    <script src="./public/lib/chart.min.js" defer></script>
-    <script src="./public/lib/chartjs-plugin-datalabels.min.js" defer></script>
+    <!-- 图表库 - 移除defer确保顺序加载 -->
+    <script src="./public/lib/chart.min.js"></script>
+    <script src="./public/lib/chartjs-plugin-datalabels.min.js"></script>
+    <!-- 注册datalabels插件 -->
+    <script>
+        // 确保datalabels插件正确注册
+        if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
+            Chart.register(ChartDataLabels);
+            console.log('✅ Chart.js datalabels插件已注册');
+        } else {
+            console.error('❌ Chart.js或datalabels插件未正确加载');
+        }
+    </script>
 
     <style>
         .filter-select {
@@ -56,7 +77,8 @@
             z-index: 10;
             width: 100%;
             margin-top: 0.25rem;
-            background-color: white;
+            background-color: rgb(var(--bg-card));
+            border: 1px solid rgb(var(--border-default));
             border-radius: 0.375rem;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
             overflow: hidden;
@@ -105,12 +127,12 @@
         }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <!-- SVG图标库（已内联到CSS中，无需额外加载） -->
+<body style="background-color: rgb(var(--bg-primary)); min-height: 100vh; color: rgb(var(--text-primary)); transition: all 0.3s;">
+    <!-- SVG图标库 - 异步加载不阻塞渲染 -->
     <div style="display:none" id="svg-sprite-container"></div>
 
     <!-- 顶部导航 -->
-    <header class="bg-white border-b border-gray-200">
+    <header class="bg-card border-b border-default">
         <div class="container mx-auto px-4 py-3 flex items-center justify-between">
             <div class="flex items-center space-x-2">
                 <svg class="icon icon-xl text-primary"><use href="#icon-line-chart"/></svg>
@@ -153,7 +175,7 @@
         </div>
 
         <!-- 筛选条件区域 -->
-        <section id="filterSection" class="mb-8 bg-white rounded-lg p-6 card-shadow">
+        <section id="filterSection" class="mb-8 bg-card rounded-lg p-6 card-shadow">
             <h3 class="text-lg font-semibold mb-4">筛选条件</h3>
 
             <!-- 时间范围和周期设置 -->
@@ -297,7 +319,7 @@
         <!-- 图表展示区域 -->
         <section id="chartsSection" class="space-y-8 hidden">
             <!-- 测站趋势图 -->
-            <div class="bg-white rounded-lg p-6 card-shadow">
+            <div class="bg-card rounded-lg p-6 card-shadow">
                 <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
                     <span>测站名称趋势分析</span>
                     <div class="flex items-center gap-3">
@@ -307,7 +329,7 @@
                                 <svg class="icon icon-sm ml-2"><use href="#icon-chevron-down"/></svg>
                             </div>
                             <div class="selected-tags" id="stationChartTags"></div>
-                            <div class="dropdown-content hidden absolute top-full left-0 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[200px]" id="stationChartOptions">
+                            <div class="dropdown-content hidden absolute top-full left-0 z-50 bg-card border border-default rounded-md shadow-lg min-w-[200px]" id="stationChartOptions">
                                 <div class="p-2 border-b border-gray-100">
                                     <input type="text" placeholder="搜索测站..." class="w-full p-1 text-sm border border-gray-200 rounded" id="stationChartSearch">
                                 </div>
@@ -351,7 +373,7 @@
             </div>
 
             <!-- 客户趋势图 -->
-            <div class="bg-white rounded-lg p-6 card-shadow">
+            <div class="bg-card rounded-lg p-6 card-shadow">
                 <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
                     <span>客户名称趋势分析</span>
                     <div class="flex items-center gap-4">
@@ -407,7 +429,7 @@
             </div>
 
             <!-- 卫星趋势图 -->
-            <div class="bg-white rounded-lg p-6 card-shadow">
+            <div class="bg-card rounded-lg p-6 card-shadow">
                 <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
                     <span>卫星名称趋势分析</span>
                     <div class="flex items-center gap-4">
@@ -463,7 +485,7 @@
             </div>
 
             <!-- 任务类型趋势图 -->
-            <div class="bg-white rounded-lg p-6 card-shadow">
+            <div class="bg-card rounded-lg p-6 card-shadow">
                 <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
                     <span>任务类型趋势分析</span>
                     <div class="flex items-center gap-4">
@@ -519,7 +541,7 @@
             </div>
 
             <!-- 任务状态趋势图 -->
-            <div class="bg-white rounded-lg p-6 card-shadow">
+            <div class="bg-card rounded-lg p-6 card-shadow">
                 <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
                     <span>任务结果状态趋势分析</span>
                     <div class="flex items-center gap-4">
@@ -581,7 +603,9 @@
         <div class="bg-card rounded-lg w-full max-w-md p-6 transform transition-all scale-95 opacity-0" id="modalContent">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-semibold">周期规则配置（所有时间均为文件时间）</h3>
-                <button id="closeConfigModal" class="text-gray-500 hover:text-gray-700 transition-colors">
+                <button id="closeConfigModal" class="transition-colors" style="color: rgb(var(--text-secondary));"
+                        onmouseover="this.style.color='rgb(var(--text-primary))'"
+                        onmouseout="this.style.color='rgb(var(--text-secondary))'">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
