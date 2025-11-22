@@ -3,6 +3,30 @@
  */
 
 /**
+ * 图表颜色调色板（清爽透明风格）
+ */
+const CHART_COLORS = [
+    { r: 54, g: 162, b: 235 },   // 蓝色
+    { r: 255, g: 99, b: 132 },   // 红色
+    { r: 75, g: 192, b: 192 },   // 青色
+    { r: 255, g: 159, b: 64 },   // 橙色
+    { r: 153, g: 102, b: 255 },  // 紫色
+    { r: 255, g: 206, b: 86 },   // 黄色
+    { r: 231, g: 233, b: 237 },  // 灰色
+    { r: 75, g: 192, b: 75 },    // 绿色
+    { r: 201, g: 203, b: 207 },  // 浅灰色
+    { r: 255, g: 99, b: 255 }    // 粉色
+];
+
+/**
+ * 获取图表颜色
+ */
+function getChartColor(index, alpha = 1) {
+    const color = CHART_COLORS[index % CHART_COLORS.length];
+    return `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
+}
+
+/**
  * 下载文件
  */
 function downloadFile(filename, content, mimeType = 'application/octet-stream') {
@@ -76,8 +100,8 @@ function convertToChartData(records, dimensionField, valueField = 'record_count'
     });
     const dimensions = Array.from(dimensionsSet).sort();
 
-    // 构建数据集
-    const datasets = dimensions.map(dimension => {
+    // 构建数据集（带清爽透明样式）
+    const datasets = dimensions.map((dimension, index) => {
         const data = periods.map(period => {
             const record = records.find(r =>
                 r.period === period && r[dimensionField] === dimension
@@ -87,7 +111,18 @@ function convertToChartData(records, dimensionField, valueField = 'record_count'
 
         return {
             label: dimension,
-            data: data
+            data: data,
+            backgroundColor: getChartColor(index, 0.1),      // 0.1 透明度的背景色
+            borderColor: getChartColor(index, 1),            // 不透明的边框色
+            borderWidth: 1.5,     // 更细的线条（多条线时更清爽）
+            pointBackgroundColor: getChartColor(index, 1),
+            pointBorderColor: '#fff',
+            pointBorderWidth: 1.5,
+            pointRadius: 3,       // 更小的数据点
+            pointHoverRadius: 5,  // 悬停时稍大
+            fill: true,           // 填充区域
+            tension: 0.4,         // 平滑曲线
+            spanGaps: false       // 不跳过0值，确保显示所有数据点
         };
     });
 

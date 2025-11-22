@@ -1158,9 +1158,22 @@ class TrendAnalysisApp {
         return {
             responsive: true,
             maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    top: 30,      // 顶部留空间，防止数据标签被遮挡
+                    right: 20,    // 右侧留空间（图例在右侧时会自动调整）
+                    bottom: 10,   // 底部留空间
+                    left: 20      // 左侧留空间
+                }
+            },
             interaction: {
                 mode: 'index',  // 交互模式：显示同一索引位置的所有数据
                 intersect: false // 不需要精确悬停在点上
+            },
+            elements: {
+                line: {
+                    spanGaps: false  // 确保不跳过0值或空值
+                }
             },
             plugins: {
                 title: {
@@ -1168,34 +1181,44 @@ class TrendAnalysisApp {
                 },
                 legend: {
                     display: true,
-                    position: 'top'
+                    position: 'right',      // 右侧单列布局
+                    align: 'start',         // 顶部对齐
+                    labels: {
+                        boxWidth: 10,       // 图例色块宽度（紧凑）
+                        boxHeight: 10,      // 图例色块高度
+                        padding: 6,         // 图例项之间的间距（更紧凑）
+                        font: {
+                            size: 11        // 字体大小
+                        },
+                        usePointStyle: false
+                    },
+                    maxWidth: 140,          // 限制最大宽度140px（节省空间）
+                    maxHeight: 400,         // 最大高度400px（超过则滚动）
+                    onClick: (e, legendItem, legend) => {
+                        // 点击图例项切换显示/隐藏对应的数据集
+                        const index = legendItem.datasetIndex;
+                        const chart = legend.chart;
+                        const meta = chart.getDatasetMeta(index);
+
+                        // 切换可见性
+                        meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
+                        chart.update();
+                    }
                 },
                 tooltip: {
-                    mode: 'index',      // 显示所有数据集在同一个X轴位置的值
-                    intersect: false,   // 不需要精确悬停在点上
-                    callbacks: {
-                        title: (context) => {
-                            // 显示时间点
-                            return context[0].label;
-                        },
-                        label: (context) => {
-                            let label = context.dataset.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            if (context.parsed.y !== null) {
-                                label += context.parsed.y;
-                            }
-                            return label;
-                        }
-                    }
+                    enabled: false,  // 禁用默认tooltip
+                    mode: 'index',
+                    intersect: false,
+                    external: this.createScrollableTooltip.bind(this)  // 使用自定义HTML tooltip
                 },
                 datalabels: {
                     display: this.showDataLabels,
                     align: 'top',
                     anchor: 'end',
+                    offset: 4,        // 标签距离数据点的偏移量
                     font: {
-                        size: 10
+                        size: 10,
+                        weight: 'bold'
                     },
                     formatter: (value) => {
                         return value > 0 ? value : '';
@@ -1220,6 +1243,126 @@ class TrendAnalysisApp {
                 }
             }
         };
+    }
+
+    /**
+     * 创建可滚动的自定义 Tooltip
+     */
+    createScrollableTooltip(context) {
+        // Tooltip 元素
+        let tooltipEl = document.getElementById('chartjs-tooltip');
+
+        // 创建元素（首次调用时）
+        if (!tooltipEl) {
+            tooltipEl = document.createElement('div');
+            tooltipEl.id = 'chartjs-tooltip';
+            tooltipEl.style.cssText = `
+                position: absolute;
+                background: rgba(0, 0, 0, 0.9);
+                color: white;
+                border-radius: 8px;
+                pointer-events: none;
+                transition: all 0.1s ease;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                z-index: 9999;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            `;
+            document.body.appendChild(tooltipEl);
+        }
+
+        // 隐藏 tooltip
+        const tooltipModel = context.tooltip;
+        if (tooltipModel.opacity === 0) {
+            tooltipEl.style.opacity = '0';
+            return;
+        }
+
+        // 设置内容
+        if (tooltipModel.body) {
+            const titleLines = tooltipModel.title || [];
+            const bodyLines = tooltipModel.body.map(item => item.lines);
+
+            // 计算总计和平均值
+            let total = 0;
+            let count = 0;
+            const dataPoints = tooltipModel.dataPoints || [];
+
+            // 按值排序
+            const sortedPoints = [...dataPoints].sort((a, b) => b.parsed.y - a.parsed.y);
+
+            sortedPoints.forEach(point => {
+                if (point.parsed.y !== null && !isNaN(point.parsed.y)) {
+                    total += point.parsed.y;
+                    count++;
+                }
+            });
+
+            const average = count > 0 ? (total / count).toFixed(1) : 0;
+
+            // 构建 HTML
+            let innerHtml = '<div style="padding: 12px;">';
+
+            // 标题
+            innerHtml += '<div style="font-weight: bold; font-size: 13px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.2);">';
+            innerHtml += `📅 ${titleLines[0]}`;
+            innerHtml += '</div>';
+
+            // 数据项列表（可滚动）
+            innerHtml += `<div style="
+                max-height: 300px;
+                overflow-y: auto;
+                margin-bottom: 10px;
+                scrollbar-width: thin;
+                scrollbar-color: rgba(74, 222, 128, 0.5) rgba(255, 255, 255, 0.1);
+            " class="custom-scrollbar">`;
+
+            sortedPoints.forEach((point, index) => {
+                const dataset = context.chart.data.datasets[point.datasetIndex];
+                const value = point.parsed.y;
+                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                const color = dataset.borderColor;
+
+                // 排名标识
+                let rankEmoji = '';
+                if (count > 3) {
+                    if (index === 0) rankEmoji = '🥇 ';
+                    else if (index === 1) rankEmoji = '🥈 ';
+                    else if (index === 2) rankEmoji = '🥉 ';
+                }
+
+                innerHtml += '<div style="display: flex; align-items: center; margin: 6px 0; font-size: 12px;">';
+                innerHtml += `<span style="display: inline-block; width: 10px; height: 10px; background: ${color}; margin-right: 8px; border-radius: 2px;"></span>`;
+                innerHtml += `<span style="flex: 1;">${rankEmoji}${dataset.label}</span>`;
+                innerHtml += `<span style="font-weight: bold; margin-left: 8px;">${value}</span>`;
+                innerHtml += `<span style="color: #a0aec0; margin-left: 6px; font-size: 11px;">(${percentage}%)</span>`;
+                innerHtml += '</div>';
+            });
+
+            innerHtml += '</div>';
+
+            // 总计区域
+            innerHtml += '<div style="border-top: 2px solid rgba(74, 222, 128, 0.3); padding-top: 10px; font-size: 13px;">';
+            innerHtml += `<div style="display: flex; justify-content: space-between; margin: 4px 0; color: #4ade80; font-weight: bold;">`;
+            innerHtml += `<span>📊 总计</span><span>${total}</span>`;
+            innerHtml += '</div>';
+            innerHtml += `<div style="display: flex; justify-content: space-between; margin: 4px 0; color: #60a5fa;">`;
+            innerHtml += `<span>📈 平均</span><span>${average}</span>`;
+            innerHtml += '</div>';
+            innerHtml += `<div style="display: flex; justify-content: space-between; margin: 4px 0; color: #a0aec0;">`;
+            innerHtml += `<span>📋 系列数</span><span>${count}</span>`;
+            innerHtml += '</div>';
+            innerHtml += '</div>';
+
+            innerHtml += '</div>';
+
+            tooltipEl.innerHTML = innerHtml;
+        }
+
+        // 定位
+        const position = context.chart.canvas.getBoundingClientRect();
+        tooltipEl.style.opacity = '1';
+        tooltipEl.style.left = position.left + window.pageXOffset + tooltipModel.caretX + 'px';
+        tooltipEl.style.top = position.top + window.pageYOffset + tooltipModel.caretY + 'px';
     }
 
     /**
