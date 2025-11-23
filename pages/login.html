@@ -235,9 +235,14 @@
                     if (response.ok && result.success) {
                         // 保存token到localStorage或sessionStorage
                         const storage = remember ? localStorage : sessionStorage;
-                        storage.setItem('authToken', result.data.token);
+                        const token = result.data.token;
+                        console.log('💾 准备保存 token:', token);
+                        console.log('💾 保存位置:', remember ? 'localStorage' : 'sessionStorage');
+                        storage.setItem('authToken', token);
                         storage.setItem('userInfo', JSON.stringify(result.data.user));
-                        
+                        console.log('✅ Token 已保存');
+                        console.log('🔍 验证读取:', storage.getItem('authToken'));
+
                         // 成功提示
                         showSuccess('登录成功，正在跳转...');
 

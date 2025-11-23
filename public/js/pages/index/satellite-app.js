@@ -1499,13 +1499,25 @@ class SatelliteApp {
      */
     clearAllCache() {
         try {
+            // 保存认证相关数据（不要删除）
+            const authToken = localStorage.getItem('authToken');
+            const userInfo = localStorage.getItem('userInfo');
+
             // 清空 sessionStorage（浏览器标签页级别）
             sessionStorage.clear();
 
             // 清空 localStorage（包括主题设置、周期配置等所有数据）
             localStorage.clear();
 
-            console.log('🗑️ 所有缓存已清空（包括主题、时间设置等）');
+            // 恢复认证数据
+            if (authToken) {
+                localStorage.setItem('authToken', authToken);
+            }
+            if (userInfo) {
+                localStorage.setItem('userInfo', userInfo);
+            }
+
+            console.log('🗑️ 所有缓存已清空（保留认证信息）');
         } catch (error) {
             console.error('❌ 清空缓存失败:', error);
         }

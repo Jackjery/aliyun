@@ -371,12 +371,18 @@
         // 应用状态管理
         class AdminApp {
             constructor() {
+                console.log('🔍 localStorage.authToken:', localStorage.getItem('authToken'));
+                console.log('🔍 sessionStorage.authToken:', sessionStorage.getItem('authToken'));
+
                 this.token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
                 this.currentPage = 1;
                 this.pageSize = 20;
                 this.filters = {};
 
                 console.log('🔐 Admin页面构造函数，token:', this.token ? '存在' : '不存在');
+                if (this.token) {
+                    console.log('🔐 Token 内容:', this.token.substring(0, 20) + '...');
+                }
                 console.log('📍 是否在iframe中:', window !== window.parent);
 
                 this.init();
