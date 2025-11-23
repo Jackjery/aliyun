@@ -3,6 +3,7 @@
  * 功能：
  * 1. 检测页面是否在 iframe 中，如果是则隐藏导航栏
  * 2. 禁用子页面的主题管理器，使用父窗口的主题管理器
+ * 3. 监听父窗口的主题变化消息
  */
 
 (function() {
@@ -18,6 +19,49 @@
         } else {
             init();
         }
+
+        // 监听父窗口发来的主题变化消息
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'themeChanged') {
+                console.log('🎨 收到主题变化消息:', event.data);
+                applyThemeFromMessage(event.data.color, event.data.mode);
+            }
+        });
+    }
+
+    // 从消息应用主题
+    function applyThemeFromMessage(colorTheme, mode) {
+        const html = document.documentElement;
+
+        // 移除所有主题类
+        const themeClasses = ['theme-dark', 'theme-orange', 'theme-green', 'theme-cyan',
+                              'theme-purple', 'theme-pink', 'theme-red', 'theme-brown',
+                              'theme-amber', 'theme-rainbow'];
+        themeClasses.forEach(cls => html.classList.remove(cls));
+
+        // 添加新的主题类
+        if (mode === 'dark') {
+            html.classList.add('theme-dark');
+        }
+
+        // 颜色主题映射
+        const colorClassMap = {
+            'orange': 'theme-orange',
+            'green': 'theme-green',
+            'cyan': 'theme-cyan',
+            'purple': 'theme-purple',
+            'pink': 'theme-pink',
+            'red': 'theme-red',
+            'brown': 'theme-brown',
+            'amber': 'theme-amber',
+            'rainbow': 'theme-rainbow'
+        };
+
+        if (colorClassMap[colorTheme]) {
+            html.classList.add(colorClassMap[colorTheme]);
+        }
+
+        console.log(`🎨 主题已应用: ${colorTheme} (${mode}), classes: ${html.className}`);
     }
 
     function init() {
@@ -102,36 +146,9 @@
                 try {
                     const themeManager = window.parent.themeManager;
                     if (themeManager) {
-                        themeManager.applyThemeToDocument(document);
+                        // 直接使用 applyThemeFromMessage 函数应用主题
+                        applyThemeFromMessage(themeManager.currentColorTheme, themeManager.currentMode);
                         console.log('🎨 已从父窗口应用主题到当前 iframe');
-
-                        // 验证主题是否成功应用
-                        const html = document.documentElement;
-                        console.log(`  📝 当前主题类: ${html.className}`);
-                        console.log(`  📝 当前主题: ${themeManager.currentColorTheme} (${themeManager.currentMode})`);
-
-                        // 检查 CSS 变量是否生效
-                        const computedStyle = getComputedStyle(document.body);
-                        const bgColor = computedStyle.backgroundColor;
-                        const textColor = computedStyle.color;
-                        console.log(`  📝 计算后的背景色: ${bgColor}`);
-                        console.log(`  📝 计算后的文字色: ${textColor}`);
-
-                        // 如果 CSS 变量没有生效，尝试重新应用
-                        if (bgColor.includes('var(') || bgColor === 'rgba(0, 0, 0, 0)' || bgColor === 'transparent') {
-                            console.warn('  ⚠️ CSS 变量未正确解析，尝试强制刷新...');
-                            // 移除并重新添加 themes.css
-                            const themeLink = document.querySelector('link[href*="themes.css"]');
-                            if (themeLink) {
-                                const newLink = themeLink.cloneNode();
-                                newLink.onload = () => {
-                                    themeManager.applyThemeToDocument(document);
-                                    console.log('  ✅ 主题 CSS 重新加载完成');
-                                };
-                                themeLink.parentNode.insertBefore(newLink, themeLink);
-                                themeLink.parentNode.removeChild(themeLink);
-                            }
-                        }
                     }
                 } catch (e) {
                     console.error('❌ 应用父窗口主题失败:', e.message);

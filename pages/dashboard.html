@@ -88,37 +88,8 @@
         </div>
     </div>
 
-    <!-- 顶部导航 -->
-    <header class="bg-card border-b border-default">
-        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center space-x-2">
-                <svg class="icon icon-xl text-primary"><use href="#icon-line-chart"/></svg>
-                <h1 class="text-xl font-bold text-primary">卫星任务数据分析平台</h1>
-            </div>
-
-            <!-- 导航菜单 -->
-            <nav class="hidden md:flex items-center space-x-6">
-                <a href="index.html" class="text-primary font-medium border-b-2 border-primary px-1 py-5">首页</a>
-                <a href="trend-analysis.html" class="text-gray-600 hover:text-primary transition-colors px-1 py-5">数据趋势分析</a>
-                 <a href="data-distribution.html" class="text-gray-600 hover:text-primary transition-colors px-1 py-5">任务分布</a>
-                 <a href="circle-warning.html" class="text-gray-600 hover:text-primary transition-colors px-1 py-5">圈次数量预警</a>
-                 <a href="admin.html" class="text-gray-600 hover:text-primary transition-colors px-1 py-5">
-                    <svg class="icon mr-1 inline-block" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                        <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
-                        <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319z"/>
-                    </svg>数据管理
-                </a>
-            </nav>
-
-            <!-- 移动端菜单按钮 -->
-            <button class="md:hidden text-gray-600 hover:text-primary">
-                <svg class="icon icon-xl"><use href="#icon-bars"/></svg>
-            </button>
-        </div>
-    </header>
-
-    <!-- 主内容区 -->
-    <main class="container mx-auto px-4 py-6">
+    <!-- 主内容区（iframe 模式下无需导航栏） -->
+    <main class="container mx-auto px-4 pt-4 pb-6">
         <!-- WebSocket连接状态 -->
         <div id="wsStatus" class="mb-3 p-3 bg-gray-100 text-gray-700 rounded-lg hidden">
             <div class="flex items-center">
@@ -168,21 +139,14 @@
                 <!-- 统计周期 -->
                 <div class="flex-1">
                     <label class="block text-xs font-medium mb-1" style="color: rgb(var(--text-secondary));">统计周期</label>
-                    <div class="relative">
-                        <select id="groupBy"
-                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                                style="height: 38px; padding-right: 32px;">
-                            <option value="day">按日</option>
-                            <option value="week">按周</option>
-                            <option value="month">按月</option>
-                            <option value="quarter">按季度</option>
-                        </select>
-                        <div class="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: rgb(var(--text-tertiary));"/>
-                            </svg>
-                        </div>
-                    </div>
+                    <select id="groupBy"
+                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                            style="height: 38px;">
+                        <option value="day">按日</option>
+                        <option value="week">按周</option>
+                        <option value="month">按月</option>
+                        <option value="quarter">按季度</option>
+                    </select>
                 </div>
 
                 <!-- 齿轮按钮 -->
@@ -270,7 +234,7 @@
 
         <!-- 统计卡片展示区 -->
         <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-3">
-            <!-- 总计划数卡片 -->
+            <!-- 总计划数卡片 - 卫星图标 -->
             <div class="stat-card bg-card rounded-lg p-6 card-shadow">
                 <div class="flex items-start justify-between">
                     <div>
@@ -279,12 +243,18 @@
                         <p class="text-xs text-gray-400 mt-1">所有周期的计划总数</p>
                     </div>
                     <div class="p-3 bg-primary/10 rounded-lg">
-                        <svg class="icon icon-xl text-primary"><use href="#icon-database"/></svg>
+                        <!-- 卫星图标 -->
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-primary">
+                            <rect x="9" y="9" width="6" height="6" rx="1" />
+                            <path d="M3 9h4M3 15h4M17 9h4M17 15h4" />
+                            <path d="M9 3v4M15 3v4M9 17v4M15 17v4" />
+                            <circle cx="12" cy="12" r="2" fill="currentColor" />
+                        </svg>
                     </div>
                 </div>
             </div>
 
-            <!-- 平均周期计划数卡片 -->
+            <!-- 平均周期计划数卡片 - 轨道图标 -->
             <div class="stat-card bg-card rounded-lg p-6 card-shadow">
                 <div class="flex items-start justify-between">
                     <div>
@@ -293,12 +263,17 @@
                         <p class="text-xs text-gray-400 mt-1">所有周期的平均值</p>
                     </div>
                     <div class="p-3 bg-secondary/10 rounded-lg">
-                        <svg class="icon icon-xl text-secondary"><use href="#icon-calculator"/></svg>
+                        <!-- 轨道/地球图标 -->
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-secondary">
+                            <circle cx="12" cy="12" r="5" />
+                            <ellipse cx="12" cy="12" rx="10" ry="4" />
+                            <circle cx="20" cy="8" r="2" fill="currentColor" />
+                        </svg>
                     </div>
                 </div>
             </div>
 
-            <!-- 总失败圈次卡片 -->
+            <!-- 总失败圈次卡片 - 故障卫星图标 -->
             <div class="stat-card bg-card rounded-lg p-6 card-shadow">
                 <div class="flex items-start justify-between">
                     <div>
@@ -307,12 +282,16 @@
                         <p class="text-xs text-gray-400 mt-1">所有周期的失败总数</p>
                     </div>
                     <div class="p-3 bg-danger/10 rounded-lg">
-                        <svg class="icon icon-xl text-danger"><use href="#icon-exclamation-circle"/></svg>
+                        <!-- 警告/故障图标 -->
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-danger">
+                            <path d="M12 9v4M12 17h.01" />
+                            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        </svg>
                     </div>
                 </div>
             </div>
 
-            <!-- 平均成功率卡片 -->
+            <!-- 平均成功率卡片 - 发射成功图标 -->
             <div class="stat-card bg-card rounded-lg p-6 card-shadow">
                 <div class="flex items-start justify-between">
                     <div>
@@ -321,12 +300,17 @@
                         <p class="text-xs text-gray-400 mt-1">所有周期的平均成功率</p>
                     </div>
                     <div class="p-3 bg-success/10 rounded-lg">
-                        <svg class="icon icon-xl text-success"><use href="#icon-check-circle"/></svg>
+                        <!-- 成功/火箭发射图标 -->
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-success">
+                            <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 00-2.91-.09z" />
+                            <path d="M12 15l-3-3a22 22 0 012-3.95A12.88 12.88 0 0122 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 01-4 2z" />
+                            <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
+                        </svg>
                     </div>
                 </div>
             </div>
 
-            <!-- 新增：最大周期计划数卡片 -->
+            <!-- 最大周期计划数卡片 - 上升火箭图标 -->
             <div class="stat-card bg-card rounded-lg p-6 card-shadow">
                 <div class="flex items-start justify-between">
                     <div>
@@ -335,12 +319,17 @@
                         <p class="text-xs text-gray-400 mt-1">单周期最大计划数</p>
                     </div>
                     <div class="p-3 bg-accent/10 rounded-lg">
-                        <svg class="icon icon-xl text-accent"><use href="#icon-arrow-up"/></svg>
+                        <!-- 上升火箭图标 -->
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-accent">
+                            <path d="M12 2L8 10h8l-4-8z" fill="currentColor" opacity="0.2" />
+                            <path d="M12 2L8 10h8l-4-8zM8 10l-2 6h2v4l4-6h-2l2-4M16 10l2 6h-2v4l-4-6h2l-2-4" />
+                            <path d="M10 22l2-2 2 2" stroke-linecap="round" />
+                        </svg>
                     </div>
                 </div>
             </div>
 
-            <!-- 新增：最小周期计划数卡片 -->
+            <!-- 最小周期计划数卡片 - 降落伞/返回舱图标 -->
             <div class="stat-card bg-card rounded-lg p-6 card-shadow">
                 <div class="flex items-start justify-between">
                     <div>
@@ -349,12 +338,18 @@
                         <p class="text-xs text-gray-400 mt-1">单周期最小计划数</p>
                     </div>
                     <div class="p-3 bg-warning/10 rounded-lg">
-                        <svg class="icon icon-xl text-warning"><use href="#icon-arrow-down"/></svg>
+                        <!-- 返回舱/降落伞图标 -->
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-warning">
+                            <path d="M12 2C6.5 2 2 6.5 2 12c0 0 4-2 10-2s10 2 10 2c0-5.5-4.5-10-10-10z" fill="currentColor" opacity="0.2" />
+                            <path d="M12 2C6.5 2 2 6.5 2 12c0 0 4-2 10-2s10 2 10 2c0-5.5-4.5-10-10-10z" />
+                            <path d="M2 12l4 2 6 8 6-8 4-2" />
+                            <path d="M12 22v-8" />
+                        </svg>
                     </div>
                 </div>
             </div>
 
-            <!-- 新增：卫星数量卡片 -->
+            <!-- 卫星数量卡片 - 多颗卫星图标 -->
             <div class="stat-card bg-card rounded-lg p-6 card-shadow cursor-pointer" id="satelliteCountCard">
                 <div class="flex items-start justify-between">
                     <div>
@@ -363,12 +358,21 @@
                         <p class="text-xs text-gray-400 mt-1">点击查看趋势图</p>
                     </div>
                     <div class="p-3 bg-primary/10 rounded-lg">
-                        <svg class="icon icon-xl text-primary"><use href="#icon-rocket"/></svg>
+                        <!-- 多颗卫星/星座图标 -->
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-primary">
+                            <rect x="3" y="8" width="4" height="4" rx="0.5" />
+                            <path d="M1 10h2M7 10h2M5 6v2M5 12v2" stroke-width="1" />
+                            <rect x="14" y="3" width="4" height="4" rx="0.5" />
+                            <path d="M12 5h2M18 5h2M16 1v2M16 7v2" stroke-width="1" />
+                            <rect x="13" y="15" width="4" height="4" rx="0.5" />
+                            <path d="M11 17h2M17 17h2M15 13v2M15 19v2" stroke-width="1" />
+                            <path d="M7 10l5-4M7 10l6 7" stroke-dasharray="2 2" opacity="0.5" />
+                        </svg>
                     </div>
                 </div>
             </div>
 
-            <!-- 新增：客户数量卡片 -->
+            <!-- 客户数量卡片 - 地面站图标 -->
             <div class="stat-card bg-card rounded-lg p-6 card-shadow cursor-pointer" id="customerCountCard">
                 <div class="flex items-start justify-between">
                     <div>
@@ -377,7 +381,17 @@
                         <p class="text-xs text-gray-400 mt-1">点击查看趋势图</p>
                     </div>
                     <div class="p-3 bg-accent/10 rounded-lg">
-                        <svg class="icon icon-xl text-accent"><use href="#icon-users"/></svg>
+                        <!-- 地面站/接收站图标 -->
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-accent">
+                            <path d="M4 20h16" />
+                            <path d="M12 20v-6" />
+                            <path d="M12 14l-6-6" />
+                            <path d="M12 14l6-6" />
+                            <circle cx="6" cy="8" r="2" />
+                            <circle cx="18" cy="8" r="2" />
+                            <path d="M3 5l3 3M21 5l-3 3" stroke-width="1" />
+                            <path d="M9 3a3 3 0 016 0" stroke-dasharray="2 2" />
+                        </svg>
                     </div>
                 </div>
             </div>

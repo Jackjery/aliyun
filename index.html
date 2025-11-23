@@ -16,7 +16,7 @@
         .iframe-container {
             position: relative;
             width: 100%;
-            height: calc(100vh - 60px); /* 减去导航栏高度 */
+            height: calc(100vh - 50px); /* 减去导航栏高度 */
             overflow: hidden;
         }
 
@@ -55,8 +55,8 @@
 <body style="background-color: rgb(var(--bg-primary)); min-height: 100vh; margin: 0; padding: 0;">
 
     <!-- 顶部导航栏 -->
-    <header class="bg-card border-b border-default" style="height: 60px;">
-        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+    <header class="bg-card border-b border-default" style="height: 50px;">
+        <div class="container mx-auto px-4 h-full flex items-center justify-between">
             <div class="flex items-center space-x-2">
                 <svg class="icon icon-xl text-primary" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
@@ -66,9 +66,9 @@
 
             <!-- 导航菜单 -->
             <nav class="hidden md:flex items-center space-x-6">
-                <a class="nav-link active px-1 py-5" data-page="dashboard">首页</a>
-                <a class="nav-link px-1 py-5" data-page="trend">数据趋势分析</a>
-                <a class="nav-link px-1 py-5" data-page="admin">
+                <a class="nav-link active px-1 py-2" data-page="dashboard">首页</a>
+                <a class="nav-link px-1 py-2" data-page="trend">数据趋势分析</a>
+                <a class="nav-link px-1 py-2" data-page="admin">
                     <svg class="icon mr-1 inline-block" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                         <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
                         <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319z"/>
@@ -104,6 +104,27 @@
     <script src="./public/js/common/theme-manager.js"></script>
 
     <script>
+        // 确保主题管理器在 index.html 正确初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 如果主题管理器还没初始化，手动初始化
+            if (!window.themeManager) {
+                console.log('🎨 手动初始化主题管理器（index.html）');
+                window.themeManager = new ThemeManager();
+            }
+
+            // 监听 iframe 加载完成，应用主题
+            document.querySelectorAll('iframe.page-frame').forEach(iframe => {
+                iframe.addEventListener('load', () => {
+                    if (window.themeManager) {
+                        setTimeout(() => {
+                            window.themeManager.applyThemeToIframes();
+                            console.log(`🎨 已应用主题到 iframe: ${iframe.id}`);
+                        }, 100);
+                    }
+                });
+            });
+        });
+
         /**
          * SPA 页面切换控制器（iframe 版本）
          */
@@ -166,7 +187,13 @@
                         // 监听 iframe 加载完成
                         targetFrame.addEventListener('load', () => {
                             console.log(`✅ iframe 加载完成: ${page}`);
-                            console.log(`💡 主题将由 ${page} 页面的 iframe-helper.js 自动应用`);
+                            // 应用主题到新加载的 iframe
+                            if (window.themeManager) {
+                                setTimeout(() => {
+                                    window.themeManager.applyThemeToIframes();
+                                    console.log(`🎨 已应用主题到新加载的 iframe: ${page}`);
+                                }, 100);
+                            }
                         }, { once: true });
                     }
                 }

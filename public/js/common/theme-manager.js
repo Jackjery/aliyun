@@ -99,13 +99,31 @@ class ThemeManager {
       this.updateUI();
     }
 
-    // 触发自定义事件，通知当前页面组件主题已更改
+    // 触发自定义事件，通知当前页面和 iframe 组件主题已更改
     window.dispatchEvent(new CustomEvent('themeChanged', {
       detail: {
         color: this.currentColorTheme,
         mode: this.currentMode
       }
     }));
+
+    // 通知所有 iframe 主题已变化
+    if (window === window.top) {
+      const iframes = document.querySelectorAll('iframe.page-frame');
+      iframes.forEach(iframe => {
+        try {
+          if (iframe.contentWindow) {
+            iframe.contentWindow.postMessage({
+              type: 'themeChanged',
+              color: this.currentColorTheme,
+              mode: this.currentMode
+            }, '*');
+          }
+        } catch (e) {
+          console.warn('无法向 iframe 发送主题变化消息:', e);
+        }
+      });
+    }
   }
 
   /**
@@ -154,15 +172,31 @@ class ThemeManager {
    */
   applyThemeToIframes() {
     const iframes = document.querySelectorAll('iframe.page-frame');
+    console.log(`🎨 开始应用主题到 ${iframes.length} 个 iframe...`);
+
     iframes.forEach(iframe => {
       try {
-        if (iframe.contentDocument) {
-          this.applyThemeToDocument(iframe.contentDocument);
-          console.log(`  ✅ 应用主题到 iframe: ${iframe.id}`);
+        // 检查 iframe 是否已加载
+        if (!iframe.contentDocument || !iframe.contentWindow) {
+          console.warn(`  ⚠️ iframe 未加载或无法访问: ${iframe.id}`);
+          return;
         }
+
+        // 应用主题
+        this.applyThemeToDocument(iframe.contentDocument);
+
+        // 强制重绘 iframe 内容
+        const iframeBody = iframe.contentDocument.body;
+        if (iframeBody) {
+          iframeBody.style.display = 'none';
+          iframeBody.offsetHeight; // 触发重排
+          iframeBody.style.display = '';
+        }
+
+        console.log(`  ✅ 应用主题到 iframe: ${iframe.id}`);
       } catch (e) {
         // 跨域 iframe 无法访问，忽略
-        console.warn(`  ⚠️ 无法访问 iframe: ${iframe.id}`, e);
+        console.warn(`  ⚠️ 无法访问 iframe: ${iframe.id}`, e.message);
       }
     });
   }

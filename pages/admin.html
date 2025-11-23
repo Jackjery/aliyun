@@ -56,29 +56,8 @@
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
-    <!-- 顶部导航 -->
-    <header class="bg-white border-b border-gray-200">
-        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center space-x-2">
-                <i class="fa fa-database text-primary text-2xl"></i>
-                <h1 class="text-xl font-bold text-primary">数据管理中心</h1>
-            </div>
-
-            <!-- 用户信息和操作 -->
-            <div class="flex items-center space-x-4">
-                <span class="text-sm text-gray-600">欢迎，<span id="username" class="font-medium">管理员</span></span>
-                <a href="../index.html#dashboard" class="text-gray-600 hover:text-primary transition-colors px-3 py-2 rounded-md">
-                    <i class="fa fa-home mr-1"></i>返回首页
-                </a>
-                <button id="logoutBtn" class="text-gray-600 hover:text-danger transition-colors px-3 py-2 rounded-md">
-                    <i class="fa fa-sign-out mr-1"></i>退出登录
-                </button>
-            </div>
-        </div>
-    </header>
-
     <!-- 主内容区 -->
-    <main class="container mx-auto px-4 py-6">
+    <main class="container mx-auto px-4 pt-4 pb-6">
         <!-- 统计卡片 -->
         <section class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <div class="stat-card bg-white rounded-lg p-6 card-shadow">
@@ -428,7 +407,7 @@
                 }
 
                 const result = await response.json();
-                document.getElementById('username').textContent = result.data.username;
+                // 用户名显示已移除（iframe模式下不需要）
             }
 
             bindEvents() {
@@ -480,9 +459,6 @@
                 document.getElementById('closeEditModal').addEventListener('click', () => this.closeEditModal());
                 document.getElementById('cancelEdit').addEventListener('click', () => this.closeEditModal());
                 document.getElementById('editForm').addEventListener('submit', (e) => this.saveEdit(e));
-
-                // 登出
-                document.getElementById('logoutBtn').addEventListener('click', () => this.logout());
             }
 
             handleFileSelect(file) {

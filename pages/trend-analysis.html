@@ -41,35 +41,7 @@
     <!-- SVG图标库 - 异步加载不阻塞渲染 -->
     <div style="display:none" id="svg-sprite-container"></div>
 
-    <!-- 顶部导航 -->
-    <header class="bg-card border-b border-default">
-        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center space-x-2">
-                <svg class="icon icon-xl text-primary"><use href="#icon-line-chart"/></svg>
-                <h1 class="text-xl font-bold text-primary">卫星任务数据分析平台</h1>
-            </div>
-
-            <nav class="hidden md:flex items-center space-x-6">
-                <a href="dashboard.html" class="text-gray-600 hover:text-primary transition-colors px-1 py-5">首页</a>
-                <a href="trend-analysis.html" class="text-primary font-medium border-b-2 border-primary px-1 py-5">数据趋势分析</a>
-                <a href="data-distribution.html" class="text-gray-600 hover:text-primary transition-colors px-1 py-5">任务分布</a>
-                <a href="circle-warning.html" class="text-gray-600 hover:text-primary transition-colors px-1 py-5">圈次数量预警</a>
-            </nav>
-
-            <button class="md:hidden text-gray-600 hover:text-primary" id="mobileMenuBtn">
-                <svg class="icon icon-xl"><use href="#icon-bars"/></svg>
-            </button>
-        </div>
-
-        <div class="md:hidden hidden bg-white border-t border-gray-200" id="mobileMenu">
-            <div class="container mx-auto px-4 py-2">
-                <a href="index.html" class="block py-3 text-gray-600 hover:text-primary">首页</a>
-                <a href="trend-analysis.html" class="block py-3 text-primary font-medium">数据趋势分析</a>
-            </div>
-        </div>
-    </header>
-
-    <main class="container mx-auto px-4 py-6">
+    <main class="container mx-auto px-4 pt-4 pb-6">
         <!-- 筛选条件区域 - 固定顶部 -->
         <section id="filterSection" class="sticky-filter-section">
             <h3 class="text-lg font-semibold mb-4">筛选条件</h3>
