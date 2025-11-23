@@ -375,18 +375,23 @@
                 this.currentPage = 1;
                 this.pageSize = 20;
                 this.filters = {};
-                
+
+                console.log('🔐 Admin页面构造函数，token:', this.token ? '存在' : '不存在');
+                console.log('📍 是否在iframe中:', window !== window.parent);
+
                 this.init();
             }
 
             async init() {
+                console.log('⚙️ init()开始执行');
+
                 // 检查认证状态
                 if (!this.token) {
+                    console.warn('❌ 未登录，跳转到登录页面');
                     // 如果在 iframe 中，跳转父窗口到登录页
                     if (window !== window.parent) {
-                        console.log('未登录，跳转到登录页面');
-                        // 使用绝对URL，基于当前页面位置解析
                         const loginUrl = new URL('login.html', window.location.href).href;
+                        console.log('🔗 跳转URL:', loginUrl);
                         window.parent.location.href = loginUrl;
                     } else {
                         window.location.href = 'login.html';
@@ -394,16 +399,22 @@
                     return;
                 }
 
+                console.log('✅ Token存在，继续初始化');
+
                 try {
-                    // 跳过验证接口，直接加载（如果 token 无效，后续 API 会自然失败）
-                    // await this.verifyAuth();
+                    console.log('🔧 绑定事件...');
                     this.bindEvents();
+                    console.log('📊 加载统计数据...');
                     await this.loadStats();
+                    console.log('📋 加载数据列表...');
                     await this.loadData();
+                    console.log('🎉 初始化完成！');
                 } catch (error) {
-                    console.error('初始化失败:', error);
+                    console.error('❌ 初始化失败:', error);
+                    console.error('错误信息:', error.message);
                     // 如果是认证错误（401），跳转到登录页
                     if (error.message && error.message.includes('401')) {
+                        console.warn('🔄 401错误，跳转到登录页');
                         if (window !== window.parent) {
                             const loginUrl = new URL('login.html', window.location.href).href;
                             window.parent.location.href = loginUrl;
@@ -411,6 +422,7 @@
                             window.location.href = 'login.html';
                         }
                     } else {
+                        console.warn('⚠️ 非认证错误，不跳转');
                         // 其他错误，显示错误信息但不跳转
                         alert('加载数据失败: ' + error.message);
                     }
