@@ -395,18 +395,24 @@
                 }
 
                 try {
-                    await this.verifyAuth();
+                    // 跳过验证接口，直接加载（如果 token 无效，后续 API 会自然失败）
+                    // await this.verifyAuth();
                     this.bindEvents();
                     await this.loadStats();
                     await this.loadData();
                 } catch (error) {
                     console.error('初始化失败:', error);
-                    // 认证失败，跳转到登录页
-                    if (window !== window.parent) {
-                        const loginUrl = new URL('login.html', window.location.href).href;
-                        window.parent.location.href = loginUrl;
+                    // 如果是认证错误（401），跳转到登录页
+                    if (error.message && error.message.includes('401')) {
+                        if (window !== window.parent) {
+                            const loginUrl = new URL('login.html', window.location.href).href;
+                            window.parent.location.href = loginUrl;
+                        } else {
+                            window.location.href = 'login.html';
+                        }
                     } else {
-                        window.location.href = 'login.html';
+                        // 其他错误，显示错误信息但不跳转
+                        alert('加载数据失败: ' + error.message);
                     }
                 }
             }
