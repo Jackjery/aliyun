@@ -1499,9 +1499,11 @@ class SatelliteApp {
      */
     clearAllCache() {
         try {
-            // 保存认证相关数据（不要删除）
-            const authToken = localStorage.getItem('authToken');
-            const userInfo = localStorage.getItem('userInfo');
+            // 保存认证相关数据（localStorage 和 sessionStorage 都要保留）
+            const localAuthToken = localStorage.getItem('authToken');
+            const localUserInfo = localStorage.getItem('userInfo');
+            const sessionAuthToken = sessionStorage.getItem('authToken');
+            const sessionUserInfo = sessionStorage.getItem('userInfo');
 
             // 清空 sessionStorage（浏览器标签页级别）
             sessionStorage.clear();
@@ -1509,12 +1511,20 @@ class SatelliteApp {
             // 清空 localStorage（包括主题设置、周期配置等所有数据）
             localStorage.clear();
 
-            // 恢复认证数据
-            if (authToken) {
-                localStorage.setItem('authToken', authToken);
+            // 恢复 localStorage 中的认证数据
+            if (localAuthToken) {
+                localStorage.setItem('authToken', localAuthToken);
             }
-            if (userInfo) {
-                localStorage.setItem('userInfo', userInfo);
+            if (localUserInfo) {
+                localStorage.setItem('userInfo', localUserInfo);
+            }
+
+            // 恢复 sessionStorage 中的认证数据
+            if (sessionAuthToken) {
+                sessionStorage.setItem('authToken', sessionAuthToken);
+            }
+            if (sessionUserInfo) {
+                sessionStorage.setItem('userInfo', sessionUserInfo);
             }
 
             console.log('🗑️ 所有缓存已清空（保留认证信息）');
