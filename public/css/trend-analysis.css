@@ -249,7 +249,7 @@ input[type="date"].filter-select::-webkit-calendar-picker-indicator {
     width: 100%;
     min-width: 200px;
     margin-top: 4px;
-    background: rgba(var(--bg-card), 0.95);
+    background: rgba(var(--bg-base), 0.6);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     border: 1px solid rgb(var(--border-color));

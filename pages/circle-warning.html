@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>圈次数据预警模块 - 卫星任务数据分析平台</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+
+    <!-- iframe 辅助脚本 - 检测并隐藏导航栏 -->
+    <script src="../public/js/common/iframe-helper.js"></script>
+
+    <!-- 🚀 性能优化：预解析API和WebSocket服务器 -->
+    <link rel="dns-prefetch" href="https://ws.nxjyx.com.cn">
+    <link rel="preconnect" href="https://ws.nxjyx.com.cn">
+
+    <!-- 🎨 主题系统 - 支持深色/浅色模式 + 多彩主题切换 -->
+    <link rel="stylesheet" href="../public/css/themes.css">
+
+    <!-- 本地资源 -->
+    <link rel="stylesheet" href="../public/css/output.css">
+    <link rel="stylesheet" href="../public/css/icons.css">
+
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+    <!-- FileSaver.js -->
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
+    <!-- 配置文件 -->
+    <script src="../public/js/common/config.js"></script>
+
+    <!-- 自定义样式 -->
+    <link rel="stylesheet" href="../public/css/circle-warning.css">
+</head>
+<body style="background-color: rgb(var(--bg-primary)); min-height: 100vh; color: rgb(var(--text-primary)); transition: all 0.3s;">
+    <main class="container mx-auto px-4 py-6">
+        <!-- 数据状态提示区 -->
+        <div id="dbLoading" class="mb-4 p-3 rounded-lg flex items-center hidden" style="background-color: rgba(var(--color-primary), 0.1); color: rgb(var(--color-primary));">
+            <i class="fa fa-spinner fa-spin mr-2"></i>
+            <span>正在从数据库加载数据...</span>
+            <div class="w-full rounded-full h-1.5 mt-2" style="background-color: rgba(var(--text-muted), 0.2);">
+                <div id="loadingProgress" class="h-1.5 rounded-full" style="width: 0%; background-color: rgb(var(--color-primary));"></div>
+            </div>
+            <div class="text-xs mt-1" style="color: rgb(var(--text-muted));">
+                <span id="loadingStatus">准备加载...</span>
+            </div>
+        </div>
+
+        <div id="dbErrorAlert" class="p-4 rounded-lg mb-4 hidden" style="background-color: rgba(var(--color-danger), 0.1); color: rgb(var(--color-danger));">
+            <i class="fa fa-exclamation-circle mr-2"></i>
+            <span id="dbErrorMsg">连接服务器出错</span>
+            <div id="dbErrorDetails" class="mt-2 text-sm hidden">
+                <p>错误详情:</p>
+                <pre class="p-2 rounded text-xs" style="background-color: rgb(var(--bg-card));"></pre>
+            </div>
+        </div>
+
+        <!-- 筛选条件和预警设置区域 -->
+        <section id="settingsSection" class="mb-4 bg-card rounded-lg p-4 card-shadow hidden">
+            <h3 class="text-lg font-semibold mb-4">预警设置</h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <!-- 时间范围和周期设置 -->
+                <div class="md:col-span-2 space-y-6">
+                    <h4 class="font-medium mb-3" style="color: rgb(var(--text-primary));">时间范围设置</h4>
+
+                    <!-- 基期设置 -->
+                    <div class="bg-card p-4 rounded-lg border-default">
+                        <h5 class="font-medium mb-3 flex items-center" style="color: rgb(var(--text-primary));">
+                            <i class="fa fa-calendar-check-o text-primary mr-2"></i>基期（对比基准时间段）
+                        </h5>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-1" style="color: rgb(var(--text-primary));">开始时间</label>
+                                <input type="datetime-local" id="basePeriodStart" class="filter-select">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1" style="color: rgb(var(--text-primary));">结束时间</label>
+                                <input type="datetime-local" id="basePeriodEnd" class="filter-select">
+                            </div>
+                        </div>
+                        <p class="text-xs mt-2" style="color: rgb(var(--text-muted));">默认：前一日早8点 至 前前一日早8点</p>
+                    </div>
+
+                    <!-- 现期设置 -->
+                    <div class="bg-card p-4 rounded-lg border-default">
+                        <h5 class="font-medium mb-3 flex items-center" style="color: rgb(var(--text-primary));">
+                            <i class="fa fa-calendar text-primary mr-2"></i>现期（当前分析时间段）
+                        </h5>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-1" style="color: rgb(var(--text-primary));">开始时间</label>
+                                <input type="datetime-local" id="currentPeriodStart" class="filter-select">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1" style="color: rgb(var(--text-primary));">结束时间</label>
+                                <input type="datetime-local" id="currentPeriodEnd" class="filter-select">
+                            </div>
+                        </div>
+                        <p class="text-xs mt-2" style="color: rgb(var(--text-muted));">默认：当日早8点 至 前一日早8点</p>
+                    </div>
+                </div>
+
+                <!-- 波动阈值设置 -->
+                <div class="space-y-4">
+                    <h4 class="font-medium mb-2" style="color: rgb(var(--text-primary));">趋势波动预警阈值</h4>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1" style="color: rgb(var(--text-primary));">
+                                波动幅度阈值: <span id="thresholdValue">20</span>%
+                            </label>
+                            <input type="range" id="fluctuationThreshold" min="0" max="100" value="20"
+                                   class="w-full h-2 rounded-lg appearance-none cursor-pointer" style="background-color: rgba(var(--text-muted), 0.2);">
+                            <div class="flex justify-between text-xs mt-1" style="color: rgb(var(--text-muted));">
+                                <span>0%</span>
+                                <span>50%</span>
+                                <span>100%</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-card p-3 rounded-lg text-sm mt-6 border-default">
+                            <p class="font-medium mb-1">波动计算公式:</p>
+                            <p class="flex items-center justify-center py-2">
+                                <span>波动幅度 = (现期值 - 基期值) / 基期值 × 100%</span>
+                            </p>
+                        </div>
+
+                        <div class="pt-2">
+                            <button id="calculateWarning" class="w-full px-4 py-2 rounded-md transition-all bg-card border-2 border-primary text-primary font-medium hover:bg-primary hover:text-white">
+                                <i class="fa fa-calculator mr-1"></i> 计算预警数据
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-card p-4 rounded-lg border-default">
+                <h4 class="font-medium mb-2 flex items-center">
+                    <i class="fa fa-info-circle text-primary mr-2"></i> 预警说明
+                </h4>
+                <ul class="text-sm space-y-1 list-disc pl-5" style="color: rgb(var(--text-secondary));">
+                    <li>系统将分别计算基期和现期的圈次数据</li>
+                    <li>根据设置的波动幅度阈值，自动识别异常波动项</li>
+                    <li>上涨超过阈值的项将标记为<span class="text-success font-medium">增长异常</span></li>
+                    <li>下降超过阈值的项将标记为<span class="text-danger font-medium">下降异常</span></li>
+                    <li>时间基于北京时间（取自您的计算机系统时间）</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- 计算结果和预警展示区域 -->
+        <section id="resultsSection" class="space-y-4 hidden">
+            <!-- 预警概览 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div class="warning-card border-l-4 border-success">
+                    <h4 class="font-medium mb-1">增长异常项</h4>
+                    <div class="flex items-end">
+                        <span id="increaseCount" class="text-2xl font-bold text-success">0</span>
+                        <span class="ml-2 mb-1" style="color: rgb(var(--text-muted));">项</span>
+                    </div>
+                    <p class="text-xs mt-2" style="color: rgb(var(--text-muted));">较基期增长超过设定阈值</p>
+                </div>
+
+                <div class="warning-card border-l-4 border-danger">
+                    <h4 class="font-medium mb-1">下降异常项</h4>
+                    <div class="flex items-end">
+                        <span id="decreaseCount" class="text-2xl font-bold text-danger">0</span>
+                        <span class="ml-2 mb-1" style="color: rgb(var(--text-muted));">项</span>
+                    </div>
+                    <p class="text-xs mt-2" style="color: rgb(var(--text-muted));">较基期下降超过设定阈值</p>
+                </div>
+
+                <div class="warning-card border-l-4 border-primary">
+                    <h4 class="font-medium mb-1">分析周期</h4>
+                    <div class="flex flex-col">
+                        <span id="periodInfo" class="text-sm font-medium">
+                            基期: <span id="basePeriodDisplay">-</span>
+                        </span>
+                        <span id="currentPeriodInfo" class="text-sm font-medium mt-1">
+                            现期: <span id="currentPeriodDisplay">-</span>
+                        </span>
+                    </div>
+                    <p class="text-xs mt-2" style="color: rgb(var(--text-muted));">基于北京时间</p>
+                </div>
+            </div>
+
+            <!-- 测站预警表格 -->
+            <div class="bg-card rounded-lg p-4 card-shadow">
+                <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
+                    <h3 class="text-lg font-semibold">测站名称波动预警</h3>
+                    <div class="flex items-center gap-2">
+                        <div class="flex border-default rounded-md overflow-hidden">
+                            <button class="status-filter px-3 py-1 text-sm" data-status="all" data-target="station">
+                                全部
+                            </button>
+                            <button class="status-filter px-3 py-1 text-sm filter-active" data-status="increase" data-target="station">
+                                <i class="fa fa-arrow-up text-success mr-1"></i>上涨异常
+                            </button>
+                            <button class="status-filter px-3 py-1 text-sm filter-active" data-status="decrease" data-target="station">
+                                <i class="fa fa-arrow-down text-danger mr-1"></i>下降异常
+                            </button>
+                            <button class="status-filter px-3 py-1 text-sm" data-status="normal" data-target="station">
+                                <i class="fa fa-check mr-1" style="color: rgb(var(--text-muted));"></i>正常
+                            </button>
+                        </div>
+                        <button id="downloadStationData" class="text-primary text-sm flex items-center transition-colors hover:opacity-80">
+                            <i class="fa fa-download mr-1"></i> 下载数据
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y border-default">
+                        <thead class="bg-secondary">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style="color: rgb(var(--text-muted));">
+                                    测站名称
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style="color: rgb(var(--text-muted));">
+                                    基期圈次
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style="color: rgb(var(--text-muted));">
+                                    现期圈次
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style="color: rgb(var(--text-muted));">
+                                    波动幅度
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style="color: rgb(var(--text-muted));">
+                                    预警状态
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="stationWarningTable" class="bg-card divide-y border-default">
+                            <!-- 表格内容将通过JS动态生成 -->
+                            <tr>
+                                <td colspan="5" class="px-6 py-10 text-center" style="color: rgb(var(--text-muted));">
+                                    请点击"计算预警数据"按钮生成结果
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 客户预警表格 -->
+            <div class="bg-card rounded-lg p-4 card-shadow">
+                <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
+                    <h3 class="text-lg font-semibold">客户名称波动预警</h3>
+                    <div class="flex items-center gap-2">
+                        <div class="flex border-default rounded-md overflow-hidden">
+                            <button class="status-filter px-3 py-1 text-sm" data-status="all" data-target="customer">
+                                全部
+                            </button>
+                            <button class="status-filter px-3 py-1 text-sm filter-active" data-status="increase" data-target="customer">
+                                <i class="fa fa-arrow-up text-success mr-1"></i>上涨异常
+                            </button>
+                            <button class="status-filter px-3 py-1 text-sm filter-active" data-status="decrease" data-target="customer">
+                                <i class="fa fa-arrow-down text-danger mr-1"></i>下降异常
+                            </button>
+                            <button class="status-filter px-3 py-1 text-sm" data-status="normal" data-target="customer">
+                                <i class="fa fa-check mr-1" style="color: rgb(var(--text-muted));"></i>正常
+                            </button>
+                        </div>
+                        <button id="downloadCustomerData" class="text-primary text-sm flex items-center transition-colors hover:opacity-80">
+                            <i class="fa fa-download mr-1"></i> 下载数据
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y border-default">
+                        <thead class="bg-secondary">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style="color: rgb(var(--text-muted));">
+                                    客户名称
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style="color: rgb(var(--text-muted));">
+                                    基期圈次
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style="color: rgb(var(--text-muted));">
+                                    现期圈次
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style="color: rgb(var(--text-muted));">
+                                    波动幅度
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style="color: rgb(var(--text-muted));">
+                                    预警状态
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="customerWarningTable" class="bg-card divide-y border-default">
+                            <!-- 表格内容将通过JS动态生成 -->
+                            <tr>
+                                <td colspan="5" class="px-6 py-10 text-center" style="color: rgb(var(--text-muted));">
+                                    请点击"计算预警数据"按钮生成结果
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 卫星预警表格 -->
+            <div class="bg-card rounded-lg p-4 card-shadow">
+                <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
+                    <h3 class="text-lg font-semibold">卫星名称波动预警</h3>
+                    <div class="flex items-center gap-2">
+                        <div class="flex border-default rounded-md overflow-hidden">
+                            <button class="status-filter px-3 py-1 text-sm" data-status="all" data-target="satellite">
+                                全部
+                            </button>
+                            <button class="status-filter px-3 py-1 text-sm filter-active" data-status="increase" data-target="satellite">
+                                <i class="fa fa-arrow-up text-success mr-1"></i>上涨异常
+                            </button>
+                            <button class="status-filter px-3 py-1 text-sm filter-active" data-status="decrease" data-target="satellite">
+                                <i class="fa fa-arrow-down text-danger mr-1"></i>下降异常
+                            </button>
+                            <button class="status-filter px-3 py-1 text-sm" data-status="normal" data-target="satellite">
+                                <i class="fa fa-check mr-1" style="color: rgb(var(--text-muted));"></i>正常
+                            </button>
+                        </div>
+                        <button id="downloadSatelliteData" class="text-primary text-sm flex items-center transition-colors hover:opacity-80">
+                            <i class="fa fa-download mr-1"></i> 下载数据
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y border-default">
+                        <thead class="bg-secondary">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style="color: rgb(var(--text-muted));">
+                                    卫星名称
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style="color: rgb(var(--text-muted));">
+                                    基期圈次
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style="color: rgb(var(--text-muted));">
+                                    现期圈次
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style="color: rgb(var(--text-muted));">
+                                    波动幅度
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style="color: rgb(var(--text-muted));">
+                                    预警状态
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="satelliteWarningTable" class="bg-card divide-y border-default">
+                            <!-- 表格内容将通过JS动态生成 -->
+                            <tr>
+                                <td colspan="5" class="px-6 py-10 text-center" style="color: rgb(var(--text-muted));">
+                                    请点击"计算预警数据"按钮生成结果
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页面逻辑脚本 -->
+    <script src="../public/js/circle-warning.js"></script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+.chart-container {
+    height: 400px;
+}
+
+/* 日历选择器图标靠右对齐 */
+input[type="datetime-local"].filter-select {
+    position: relative;
+    padding-right: 32px;
+}
+
+input[type="datetime-local"].filter-select::-webkit-calendar-picker-indicator {
+    position: absolute;
+    right: 8px;
+    cursor: pointer;
+}
+
+/* Firefox 支持 */
+input[type="datetime-local"].filter-select::-moz-calendar-picker-indicator {
+    position: absolute;
+    right: 8px;
+    cursor: pointer;
+}

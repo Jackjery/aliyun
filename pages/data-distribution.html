@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据分布分析 - 卫星任务数据分析平台</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+
+    <!-- 🚀 性能优化：预解析API和WebSocket服务器 -->
+    <link rel="dns-prefetch" href="https://ws.nxjyx.com.cn">
+    <link rel="preconnect" href="https://ws.nxjyx.com.cn">
+
+    <!-- 🎨 主题系统 -->
+    <link rel="stylesheet" href="../public/css/themes.css">
+
+    <!-- 本地资源 -->
+    <link rel="stylesheet" href="../public/css/output.css">
+    <link rel="stylesheet" href="../public/css/icons.css">
+    <link rel="stylesheet" href="../public/css/trend-analysis.css">
+
+    <!-- iframe 辅助脚本 -->
+    <script src="../public/js/common/iframe-helper.js"></script>
+
+    <!-- 配置文件 -->
+    <script src="../public/js/common/config.js"></script>
+
+    <!-- 图表库 -->
+    <script src="../public/lib/chart.min.js"></script>
+    <script src="../public/lib/chartjs-plugin-datalabels.min.js"></script>
+
+    <!-- 工具函数 -->
+    <script src="../public/js/pages/trend/trend-utils.js"></script>
+
+    <!-- 数据分布页面样式 -->
+    <link rel="stylesheet" href="../public/css/data-distribution.css">
+</head>
+<body style="background-color: rgb(var(--bg-primary)); min-height: 100vh; color: rgb(var(--text-primary));">
+    <main class="container mx-auto px-4 pt-4 pb-6">
+        <!-- Loading 状态 -->
+        <div id="loading" class="mb-4 p-4 bg-primary/10 text-primary rounded-lg flex items-center justify-center hidden">
+            <svg class="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>正在加载数据...</span>
+        </div>
+
+        <!-- 错误提示 -->
+        <div id="error" class="mb-4 p-4 bg-danger/10 text-danger rounded-lg hidden"></div>
+
+        <!-- 时间筛选区域 -->
+        <section class="mb-4 bg-card rounded-lg p-4 card-shadow">
+            <h3 class="text-lg font-semibold mb-4">时间筛选</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">开始时间</label>
+                    <input type="datetime-local" id="startDateTime" class="filter-select">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">结束时间</label>
+                    <input type="datetime-local" id="endDateTime" class="filter-select">
+                </div>
+                <div class="flex items-end">
+                    <button id="applyFilters" class="w-full px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors" title="修改时间后自动刷新，也可手动点击生成图表">
+                        生成图表
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 统计卡片 -->
+        <section id="statsCards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <!-- 总圈次卡片 -->
+            <div class="stat-card bg-card rounded-lg p-4 card-shadow">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500 font-medium">总圈次</p>
+                        <h3 class="text-3xl font-bold text-primary mt-2" id="totalCycles">0</h3>
+                        <p class="text-xs text-gray-400 mt-1">所有圈次总数</p>
+                    </div>
+                    <div class="p-3 bg-primary/10 rounded-lg">
+                        <!-- 环形图标 -->
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-primary">
+                            <circle cx="12" cy="12" r="8" />
+                            <path d="M12 4v8l4 4" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 卫星数量卡片 -->
+            <div class="stat-card bg-card rounded-lg p-4 card-shadow">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500 font-medium">卫星数量</p>
+                        <h3 class="text-3xl font-bold text-secondary mt-2" id="satelliteCount">0</h3>
+                        <p class="text-xs text-gray-400 mt-1">涉及卫星总数</p>
+                    </div>
+                    <div class="p-3 bg-secondary/10 rounded-lg">
+                        <!-- 卫星图标 -->
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-secondary">
+                            <rect x="9" y="9" width="6" height="6" rx="1" />
+                            <path d="M3 9h4M3 15h4M17 9h4M17 15h4" />
+                            <path d="M9 3v4M15 3v4M9 17v4M15 17v4" />
+                            <circle cx="12" cy="12" r="2" fill="currentColor" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 客户数量卡片 -->
+            <div class="stat-card bg-card rounded-lg p-4 card-shadow">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500 font-medium">客户数量</p>
+                        <h3 class="text-3xl font-bold text-accent mt-2" id="customerCount">0</h3>
+                        <p class="text-xs text-gray-400 mt-1">服务客户总数</p>
+                    </div>
+                    <div class="p-3 bg-accent/10 rounded-lg">
+                        <!-- 用户组图标 -->
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-accent">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 测站数量卡片 -->
+            <div class="stat-card bg-card rounded-lg p-4 card-shadow">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500 font-medium">测站数量</p>
+                        <h3 class="text-3xl font-bold text-success mt-2" id="stationCount">0</h3>
+                        <p class="text-xs text-gray-400 mt-1">参与测站总数</p>
+                    </div>
+                    <div class="p-3 bg-success/10 rounded-lg">
+                        <!-- 地图标记图标 -->
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-success">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                            <circle cx="12" cy="10" r="3" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 客户数据分布 -->
+        <section id="customerDistribution" class="mb-4">
+            <h3 class="text-lg font-semibold mb-4">客户数据分布</h3>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div class="bg-card rounded-lg p-4 card-shadow">
+                    <h4 class="text-base font-medium mb-4">各客户跟踪圈次占比</h4>
+                    <div class="chart-container border border-default rounded-lg p-4">
+                        <canvas id="customerPieChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-card rounded-lg p-4 card-shadow">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="text-base font-medium">各客户跟踪圈次数量</h4>
+                        <div class="flex items-center gap-2">
+                            <label class="flex items-center justify-center px-2.5 bg-primary/10 text-primary rounded cursor-pointer hover:bg-primary/20 transition whitespace-nowrap" style="height: 32px;">
+                                <input type="checkbox" id="showCustomerBarLabels" class="mr-1.5 w-4 h-4">
+                                <span class="text-sm font-medium">显示数据标签</span>
+                            </label>
+                            <button class="chart-download-btn flex items-center justify-center px-2.5 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition whitespace-nowrap" style="height: 32px;"
+                                    data-chart="customerBar" data-type="image">
+                                <svg class="icon"><use href="#icon-download"/></svg>
+                                <span>下载图表</span>
+                            </button>
+                            <button class="chart-download-btn flex items-center justify-center px-2.5 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition whitespace-nowrap" style="height: 32px;"
+                                    data-chart="customerBar" data-type="csv">
+                                <svg class="icon"><use href="#icon-table"/></svg>
+                                <span>CSV</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="chart-container border border-default rounded-lg p-4 relative flex">
+                        <div class="flex-1 relative min-w-0">
+                            <canvas id="customerBarChart"></canvas>
+                        </div>
+                        <div id="customerBarChartLegend" class="chart-legend-container"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 测站数据分布 -->
+        <section id="stationDistribution" class="mb-4">
+            <h3 class="text-lg font-semibold mb-4">测站数据分布</h3>
+            <div class="bg-card rounded-lg p-4 card-shadow">
+                <div class="flex items-center justify-between mb-4">
+                    <h4 class="text-base font-medium">各测站跟踪圈次数量</h4>
+                    <div class="flex items-center gap-2">
+                        <label class="flex items-center justify-center px-2.5 bg-primary/10 text-primary rounded cursor-pointer hover:bg-primary/20 transition whitespace-nowrap" style="height: 32px;">
+                            <input type="checkbox" id="showStationBarLabels" class="mr-1.5 w-4 h-4">
+                            <span class="text-sm font-medium">显示数据标签</span>
+                        </label>
+                        <button class="chart-download-btn flex items-center justify-center px-2.5 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition whitespace-nowrap" style="height: 32px;"
+                                data-chart="stationBar" data-type="image">
+                            <svg class="icon"><use href="#icon-download"/></svg>
+                            <span>下载图表</span>
+                        </button>
+                        <button class="chart-download-btn flex items-center justify-center px-2.5 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition whitespace-nowrap" style="height: 32px;"
+                                data-chart="stationBar" data-type="csv">
+                            <svg class="icon"><use href="#icon-table"/></svg>
+                            <span>CSV</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-container border border-default rounded-lg p-4 relative flex">
+                    <div class="flex-1 relative min-w-0">
+                        <canvas id="stationBarChart"></canvas>
+                    </div>
+                    <div id="stationBarChartLegend" class="chart-legend-container"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 客户-卫星数据分布 -->
+        <section id="customerSatelliteDistribution" class="mb-4">
+            <h3 class="text-lg font-semibold mb-4">客户-卫星数据分布</h3>
+
+            <div class="bg-card rounded-lg p-4 card-shadow mb-4">
+                <h4 class="text-base font-medium mb-3">选择客户</h4>
+                <div class="dropdown-container">
+                    <div class="filter-select" id="customerSelectDropdown">
+                        <div class="filter-input-area">
+                            <div class="selected-tags-inline" id="selectedCustomerTags">
+                                <span class="text-gray-500 italic text-sm">请选择客户</span>
+                            </div>
+                            <input type="text" id="customerSearchInput" placeholder="搜索客户..." style="display: none;">
+                        </div>
+                        <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M6 9l6 6 6-6"/>
+                        </svg>
+                    </div>
+                    <div class="dropdown-content hidden" id="customerSelectOptions">
+                        <div class="dropdown-options-list" id="customerOptionsList"></div>
+                        <div class="dropdown-footer">
+                            <div class="flex gap-2">
+                                <div class="select-all-item flex-1" id="selectAllBtn">
+                                    <input type="checkbox" id="selectAllCheckbox">
+                                    <span>全选</span>
+                                </div>
+                                <div class="select-all-item flex-1" id="deselectAllBtn">
+                                    <span>清空</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-card rounded-lg p-4 card-shadow">
+                <div class="flex items-center justify-between mb-4">
+                    <h4 class="text-base font-medium">客户所属卫星跟踪圈次</h4>
+                    <div class="flex items-center gap-2">
+                        <label class="flex items-center justify-center px-2.5 bg-primary/10 text-primary rounded cursor-pointer hover:bg-primary/20 transition whitespace-nowrap" style="height: 32px;">
+                            <input type="checkbox" id="showCustomerSatelliteLabels" class="mr-1.5 w-4 h-4">
+                            <span class="text-sm font-medium">显示数据标签</span>
+                        </label>
+                        <button class="chart-download-btn flex items-center justify-center px-2.5 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition whitespace-nowrap" style="height: 32px;"
+                                data-chart="customerSatellite" data-type="image">
+                            <svg class="icon"><use href="#icon-download"/></svg>
+                            <span>下载图表</span>
+                        </button>
+                        <button class="chart-download-btn flex items-center justify-center px-2.5 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition whitespace-nowrap" style="height: 32px;"
+                                data-chart="customerSatellite" data-type="csv">
+                            <svg class="icon"><use href="#icon-table"/></svg>
+                            <span>CSV</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-container border border-default rounded-lg p-4 relative flex">
+                    <div class="flex-1 relative min-w-0">
+                        <canvas id="customerSatelliteBarChart"></canvas>
+                    </div>
+                    <div id="customerSatelliteBarChartLegend" class="chart-legend-container"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 客户-测站偏好分布 -->
+        <section id="customerStationPreference" class="mb-4">
+            <h3 class="text-lg font-semibold mb-4">客户-测站偏好分布</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="stationPreferenceCharts">
+                <div class="bg-card rounded-lg p-4 card-shadow flex items-center justify-center h-80">
+                    <div class="text-center text-gray-500">
+                        <p>请选择客户查看测站偏好</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 数据分布页面脚本 -->
+    <script src="../public/js/pages/data-distribution/main.js"></script>
+</body>
+</html>

@@ -68,6 +68,8 @@
             <nav class="hidden md:flex items-center space-x-6">
                 <a class="nav-link active px-1 py-2" data-page="dashboard">首页</a>
                 <a class="nav-link px-1 py-2" data-page="trend">数据趋势分析</a>
+                <a class="nav-link px-1 py-2" data-page="distribution">数据分布统计</a>
+                <a class="nav-link px-1 py-2" data-page="warning">圈次数据预警</a>
                 <a class="nav-link px-1 py-2" data-page="admin">
                     <svg class="icon mr-1 inline-block" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                         <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
@@ -93,6 +95,12 @@
 
         <!-- 趋势分析 iframe -->
         <iframe id="frame-trend" class="page-frame" data-src="pages/trend-analysis.html"></iframe>
+
+        <!-- 数据分布统计 iframe -->
+        <iframe id="frame-distribution" class="page-frame" data-src="pages/data-distribution.html"></iframe>
+
+        <!-- 圈次数据预警 iframe -->
+        <iframe id="frame-warning" class="page-frame" data-src="pages/circle-warning.html"></iframe>
 
         <!-- 数据管理 iframe -->
         <iframe id="frame-admin" class="page-frame" data-src="pages/admin.html"></iframe>
@@ -221,6 +229,8 @@
                 const titles = {
                     'dashboard': '卫星任务数据分析平台',
                     'trend': '数据趋势分析 - 卫星任务数据分析平台',
+                    'distribution': '数据分布统计 - 卫星任务数据分析平台',
+                    'warning': '圈次数据预警 - 卫星任务数据分析平台',
                     'admin': '数据管理 - 卫星任务数据分析平台'
                 };
                 document.title = titles[page] || '卫星任务数据分析平台';
@@ -245,12 +255,14 @@
 
         // 全局快捷键支持（可选）
         document.addEventListener('keydown', (e) => {
-            // Alt + 1/2/3 快速切换页面
+            // Alt + 1/2/3/4/5 快速切换页面
             if (e.altKey && !e.ctrlKey && !e.shiftKey) {
                 const pageMap = {
                     '1': 'dashboard',
                     '2': 'trend',
-                    '3': 'admin'
+                    '3': 'distribution',
+                    '4': 'warning',
+                    '5': 'admin'
                 };
                 const page = pageMap[e.key];
                 if (page && window.spaController) {
