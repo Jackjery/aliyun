@@ -161,10 +161,19 @@
                     this.navigateTo(page, false);
                 });
 
-                // 初始化浏览器历史记录
-                window.history.replaceState({ page: 'dashboard' }, '', '#dashboard');
+                // 检查 URL hash，决定初始显示哪个页面
+                const hash = window.location.hash.slice(1); // 去掉 # 号
+                const initialPage = hash || 'dashboard';
 
-                console.log('✅ SPA 控制器初始化完成');
+                if (initialPage !== 'dashboard') {
+                    // 如果不是首页，需要先导航过去
+                    this.navigateTo(initialPage, false);
+                }
+
+                // 初始化浏览器历史记录
+                window.history.replaceState({ page: initialPage }, '', `#${initialPage}`);
+
+                console.log('✅ SPA 控制器初始化完成，初始页面:', initialPage);
             }
 
             /**
