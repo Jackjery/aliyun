@@ -385,7 +385,9 @@
                     // 如果在 iframe 中，跳转父窗口到登录页
                     if (window !== window.parent) {
                         console.log('未登录，跳转到登录页面');
-                        window.parent.location.href = 'pages/login.html';
+                        // 使用绝对URL，基于当前页面位置解析
+                        const loginUrl = new URL('login.html', window.location.href).href;
+                        window.parent.location.href = loginUrl;
                     } else {
                         window.location.href = 'login.html';
                     }
@@ -401,7 +403,8 @@
                     console.error('初始化失败:', error);
                     // 认证失败，跳转到登录页
                     if (window !== window.parent) {
-                        window.parent.location.href = 'pages/login.html';
+                        const loginUrl = new URL('login.html', window.location.href).href;
+                        window.parent.location.href = loginUrl;
                     } else {
                         window.location.href = 'login.html';
                     }
@@ -950,7 +953,8 @@
                 sessionStorage.removeItem('userInfo');
                 // 如果在 iframe 中，跳出到父窗口
                 if (window !== window.parent) {
-                    window.parent.location.href = 'pages/login.html';
+                    const loginUrl = new URL('login.html', window.location.href).href;
+                    window.parent.location.href = loginUrl;
                 } else {
                     window.location.href = 'login.html';
                 }
