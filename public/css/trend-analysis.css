@@ -509,3 +509,31 @@ label:has(input[type="checkbox"]) {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+/* ========== 图表加载状态 ========== */
+.chart-loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(var(--bg-card), 0.95);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    border-radius: 8px;
+}
+
+.chart-loading-overlay.hidden {
+    display: none !important;
+}
+
+.chart-loading-content {
+    text-align: center;
+}
+
+/* 加载提示文字 */
+.chart-loading-text {
+    font-size: 14px;
+    color: rgb(var(--text-secondary));
+}

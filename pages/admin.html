@@ -4,8 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>数据管理 - 卫星任务数据分析平台</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+
+    <!-- 🎨 主题系统 - 支持深色/浅色模式 + 多彩主题切换 -->
+    <link rel="stylesheet" href="../public/css/themes.css">
+
+    <!-- 本地资源 -->
+    <link rel="stylesheet" href="../public/css/output.css">
+    <link rel="stylesheet" href="../public/css/icons.css">
+
+    <!-- Font Awesome图标 (admin页面大量使用,保留CDN) -->
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+    <!-- Excel库 -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <!-- iframe 辅助脚本 - 检测并隐藏导航栏 -->
@@ -13,23 +24,6 @@
 
     <!-- 配置文件 -->
     <script src="../public/js/common/config.js"></script>
-    
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#165DFF',
-                        secondary: '#36CFC9',
-                        accent: '#722ED1',
-                        warning: '#FF7D00',
-                        danger: '#F53F3F',
-                        success: '#00B42A',
-                    },
-                }
-            }
-        }
-    </script>
 
     <style>
         .card-shadow {
@@ -53,11 +47,99 @@
             border-color: #165DFF;
             background-color: rgba(22, 93, 255, 0.05);
         }
+
+        /* iframe模式下的样式优化 */
+        body.iframe-mode .admin-header {
+            padding: 0.4rem 0;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+            background: linear-gradient(to bottom, rgba(var(--bg-card), 1), rgba(var(--bg-card), 0.98));
+        }
+
+        body.iframe-mode .header-logo-section {
+            display: none !important;
+        }
+
+        body.iframe-mode .header-user-section {
+            width: 100%;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+
+        body.iframe-mode .header-home-btn {
+            display: none;
+        }
+
+        body.iframe-mode .admin-header .container {
+            padding: 0.4rem 1.5rem;
+            max-width: 100%;
+        }
+
+        body.iframe-mode .header-user-section > * {
+            font-size: 0.875rem;
+        }
+
+        body.iframe-mode .header-user-section button,
+        body.iframe-mode .header-user-section a {
+            padding: 0.4rem 0.75rem;
+            border-radius: 0.375rem;
+            transition: all 0.2s;
+        }
+
+        body.iframe-mode .header-user-section button:hover,
+        body.iframe-mode .header-user-section a:hover {
+            background-color: rgba(var(--color-primary), 0.1);
+        }
+
+        body.iframe-mode #logoutBtn:hover {
+            background-color: rgba(239, 68, 68, 0.1);
+        }
+
+        /* iframe模式下主内容区调整 */
+        body.iframe-mode main {
+            padding-top: 1rem;
+        }
+
+        /* 响应式：小屏幕隐藏按钮文字 */
+        @media (max-width: 768px) {
+            .btn-text {
+                display: none;
+            }
+            body.iframe-mode .header-user-section {
+                gap: 0.25rem;
+            }
+        }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-base text-primary min-h-screen">
+    <!-- 顶部导航 -->
+    <header class="bg-card border-b border-default admin-header">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <!-- 左侧标题区（iframe模式下隐藏） -->
+            <div class="flex items-center space-x-2 header-logo-section">
+                <i class="fa fa-database text-primary text-2xl"></i>
+                <h1 class="text-xl font-bold text-primary">数据管理中心</h1>
+            </div>
+
+            <!-- 右侧用户操作区（iframe模式下保留） -->
+            <div class="flex items-center space-x-4 header-user-section">
+                <span class="text-sm text-gray-600">
+                    <i class="fa fa-user-circle mr-1"></i>
+                    <span id="username" class="font-medium">管理员</span>
+                </span>
+                <a href="../index.html" target="_top" class="text-gray-600 hover:text-primary transition-colors px-3 py-2 rounded-md header-home-btn">
+                    <i class="fa fa-home mr-1"></i>
+                    <span class="btn-text">返回首页</span>
+                </a>
+                <button id="logoutBtn" class="text-gray-600 hover:text-danger transition-colors px-3 py-2 rounded-md">
+                    <i class="fa fa-sign-out mr-1"></i>
+                    <span class="btn-text">退出登录</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
     <!-- 主内容区 -->
-    <main class="container mx-auto px-4 pt-4 pb-6">
+    <main class="container mx-auto px-4 py-6">
         <!-- 统计卡片 -->
         <section class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <div class="stat-card bg-white rounded-lg p-6 card-shadow">
@@ -371,81 +453,112 @@
         // 应用状态管理
         class AdminApp {
             constructor() {
-                console.log('🔍 localStorage.authToken:', localStorage.getItem('authToken'));
-                console.log('🔍 sessionStorage.authToken:', sessionStorage.getItem('authToken'));
-
                 this.token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
                 this.currentPage = 1;
                 this.pageSize = 20;
                 this.filters = {};
 
-                console.log('🔐 Admin页面构造函数，token:', this.token ? '存在' : '不存在');
-                if (this.token) {
-                    console.log('🔐 Token 内容:', this.token.substring(0, 20) + '...');
-                }
-                console.log('📍 是否在iframe中:', window !== window.parent);
+                console.log('🔐 Admin页面初始化');
+                console.log('📍 Token来源:', localStorage.getItem('authToken') ? 'localStorage' : 'sessionStorage');
+                console.log('🎫 Token值:', this.token ? this.token.substring(0, 20) + '...' : 'null');
 
                 this.init();
             }
 
             async init() {
-                console.log('⚙️ init()开始执行');
+                // 先从本地存储加载用户信息
+                this.loadUserInfo();
 
                 // 检查认证状态
                 if (!this.token) {
-                    console.warn('❌ 未登录，跳转到登录页面');
-                    // 如果在 iframe 中，跳转父窗口到登录页
-                    if (window !== window.parent) {
-                        const loginUrl = new URL('login.html', window.location.href).href;
-                        console.log('🔗 跳转URL:', loginUrl);
-                        window.parent.location.href = loginUrl;
-                    } else {
-                        window.location.href = 'login.html';
-                    }
+                    console.error('❌ 未找到token，跳转登录页');
+                    this.redirectToLogin();
                     return;
                 }
 
-                console.log('✅ Token存在，继续初始化');
-
                 try {
-                    console.log('🔧 绑定事件...');
+                    console.log('🔍 开始验证token...');
+                    await this.verifyAuth();
+                    console.log('✅ Token验证成功');
                     this.bindEvents();
-                    console.log('📊 加载统计数据...');
                     await this.loadStats();
-                    console.log('📋 加载数据列表...');
                     await this.loadData();
-                    console.log('🎉 初始化完成！');
                 } catch (error) {
                     console.error('❌ 初始化失败:', error);
-                    console.error('错误信息:', error.message);
-                    // 如果是认证错误（401），跳转到登录页
-                    if (error.message && error.message.includes('401')) {
-                        console.warn('🔄 401错误，跳转到登录页');
-                        if (window !== window.parent) {
-                            const loginUrl = new URL('login.html', window.location.href).href;
-                            window.parent.location.href = loginUrl;
-                        } else {
-                            window.location.href = 'login.html';
-                        }
-                    } else {
-                        console.warn('⚠️ 非认证错误，不跳转');
-                        // 其他错误，显示错误信息但不跳转
-                        alert('加载数据失败: ' + error.message);
+                    console.error('❌ 错误详情:', error.message);
+                    console.error('❌ 错误堆栈:', error.stack);
+
+                    // 验证失败，尝试继续加载（可能是verify接口不存在）
+                    console.warn('⚠️ 跳过token验证，尝试继续加载...');
+                    try {
+                        this.bindEvents();
+                        await this.loadStats();
+                        await this.loadData();
+                    } catch (loadError) {
+                        console.error('❌ 加载数据也失败，退出登录');
+                        this.logout();
                     }
                 }
             }
 
-            async verifyAuth() {
-                const response = await fetch(`${CONFIG.API_BASE_URL}/verify`, {
-                    headers: { 'Authorization': `Bearer ${this.token}` }
-                });
+            loadUserInfo() {
+                // 从localStorage或sessionStorage读取用户信息
+                const userInfoStr = localStorage.getItem('userInfo') || sessionStorage.getItem('userInfo');
 
-                if (!response.ok) {
-                    throw new Error('认证失败');
+                if (userInfoStr) {
+                    try {
+                        const userInfo = JSON.parse(userInfoStr);
+                        console.log('👤 加载用户信息:', userInfo);
+
+                        if (userInfo.username) {
+                            document.getElementById('username').textContent = userInfo.username;
+                            console.log('✅ 用户名已更新:', userInfo.username);
+                        }
+                    } catch (error) {
+                        console.error('❌ 解析用户信息失败:', error);
+                    }
+                } else {
+                    console.warn('⚠️ 未找到本地用户信息');
                 }
+            }
 
-                const result = await response.json();
-                // 用户名显示已移除（iframe模式下不需要）
+            redirectToLogin() {
+                // 如果在iframe中，跳转父窗口
+                if (window.self !== window.top) {
+                    window.top.location.href = 'login.html';
+                } else {
+                    window.location.href = 'login.html';
+                }
+            }
+
+            async verifyAuth() {
+                const verifyUrl = `${CONFIG.API_BASE_URL}/verify`;
+                console.log('🌐 验证URL:', verifyUrl);
+                console.log('🔑 Authorization header:', `Bearer ${this.token ? this.token.substring(0, 20) + '...' : 'null'}`);
+
+                try {
+                    const response = await fetch(verifyUrl, {
+                        headers: { 'Authorization': `Bearer ${this.token}` }
+                    });
+
+                    console.log('📡 验证响应状态:', response.status, response.statusText);
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('❌ 验证失败响应:', errorText);
+                        throw new Error(`认证失败 (${response.status}): ${errorText}`);
+                    }
+
+                    const result = await response.json();
+                    console.log('✅ 验证成功，用户信息:', result);
+
+                    if (result.data && result.data.username) {
+                        document.getElementById('username').textContent = result.data.username;
+                    }
+                } catch (fetchError) {
+                    console.error('❌ 验证请求异常:', fetchError);
+                    throw fetchError;
+                }
             }
 
             bindEvents() {
@@ -497,6 +610,9 @@
                 document.getElementById('closeEditModal').addEventListener('click', () => this.closeEditModal());
                 document.getElementById('cancelEdit').addEventListener('click', () => this.closeEditModal());
                 document.getElementById('editForm').addEventListener('submit', (e) => this.saveEdit(e));
+
+                // 登出
+                document.getElementById('logoutBtn').addEventListener('click', () => this.logout());
             }
 
             handleFileSelect(file) {
@@ -975,13 +1091,7 @@
                 sessionStorage.removeItem('authToken');
                 localStorage.removeItem('userInfo');
                 sessionStorage.removeItem('userInfo');
-                // 如果在 iframe 中，跳出到父窗口
-                if (window !== window.parent) {
-                    const loginUrl = new URL('login.html', window.location.href).href;
-                    window.parent.location.href = loginUrl;
-                } else {
-                    window.location.href = 'login.html';
-                }
+                this.redirectToLogin();
             }
         }
 
@@ -991,5 +1101,8 @@
             app = new AdminApp();
         });
     </script>
+
+    <!-- 主题管理器 -->
+    <script src="../public/js/common/theme-manager.js" defer></script>
 </body>
 </html>

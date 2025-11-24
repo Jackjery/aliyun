@@ -9,11 +9,6 @@ class TrendAnalysisApp {
         // WebSocket 管理器
         this.wsManager = null;
 
-        // 【Web Worker】图表数据处理 Worker
-        this.worker = null;
-        this.workerTaskId = 0;
-        this.workerCallbacks = new Map();
-
         // 多选下拉框实例（顶部筛选器）
         this.topFilters = {
             station: null,
@@ -70,6 +65,15 @@ class TrendAnalysisApp {
 
         // 周期规则配置
         this.cycleRules = this.loadCycleRules();
+
+        // 数据标签显示状态（每个图表独立）
+        this.showDataLabels = {
+            station: false,
+            customer: false,
+            satellite: false,
+            taskType: false,
+            taskStatus: false
+        };
     }
 
     /**
@@ -83,9 +87,6 @@ class TrendAnalysisApp {
 
         // 初始化日期
         this.initializeDates();
-
-        // 【Web Worker】初始化 Worker
-        this.initWorker();
 
         // 初始化 WebSocket
         await this.initWebSocket();
@@ -106,102 +107,6 @@ class TrendAnalysisApp {
         await this.loadFilterOptions();
 
         console.log('✅ TrendAnalysisApp 初始化完成');
-    }
-
-    /**
-     * 【Web Worker】初始化 Worker
-     */
-    initWorker() {
-        try {
-            // 创建 Worker（使用相对于 HTML 文件的路径）
-            this.worker = new Worker('../public/js/workers/chart-data-worker.js');
-
-            // 监听 Worker 消息
-            this.worker.addEventListener('message', (e) => {
-                this.handleWorkerMessage(e.data);
-            });
-
-            // 监听 Worker 错误
-            this.worker.addEventListener('error', (e) => {
-                console.error('❌ [Worker] Worker 发生错误', e);
-            });
-
-            console.log('✅ [Worker] Chart Data Worker 初始化成功');
-        } catch (error) {
-            console.warn('⚠️ [Worker] Worker 初始化失败，将使用主线程处理数据', error);
-            this.worker = null;
-        }
-    }
-
-    /**
-     * 【Web Worker】处理 Worker 返回的消息
-     */
-    handleWorkerMessage(message) {
-        const { taskId, success, data, error } = message;
-
-        const callback = this.workerCallbacks.get(taskId);
-        if (!callback) {
-            console.warn(`⚠️ [Worker] 找不到任务 ${taskId} 的回调`);
-            return;
-        }
-
-        // 执行回调
-        if (success) {
-            callback.resolve(data);
-        } else {
-            callback.reject(new Error(error.message));
-        }
-
-        // 清理回调
-        this.workerCallbacks.delete(taskId);
-    }
-
-    /**
-     * 【Web Worker】在 Worker 中处理图表数据
-     * @param {string} type - 图表类���
-     * @param {Array} records - 原始记录
-     * @param {string} dimensionField - 维度字段名
-     * @param {string} valueField - 值字段名
-     * @param {Object} options - 选项
-     * @returns {Promise<Object>} - Chart.js 数据格式
-     */
-    processDataInWorker(type, records, dimensionField, valueField, options) {
-        return new Promise((resolve, reject) => {
-            // 如果 Worker 不可用，降级到主线程处理
-            if (!this.worker) {
-                console.warn('⚠️ [Worker] Worker 不可用，使用主线程处理数据');
-                try {
-                    const chartData = convertToChartData(records, dimensionField, valueField, options);
-                    if (options.groupBy) {
-                        chartData.labels = chartData.labels.map(label =>
-                            formatPeriodLabel(label, options.groupBy)
-                        );
-                    }
-                    resolve(chartData);
-                } catch (error) {
-                    reject(error);
-                }
-                return;
-            }
-
-            // 生成任务 ID
-            const taskId = ++this.workerTaskId;
-
-            // 保存回调
-            this.workerCallbacks.set(taskId, { resolve, reject });
-
-            // 发送任务给 Worker
-            this.worker.postMessage({
-                taskId,
-                type,
-                records,
-                dimensionField,
-                valueField,
-                options
-            });
-
-            console.log(`📤 [Worker] 已发送任务 ${taskId} (${type}) 给 Worker，记录数: ${records.length}`);
-        });
     }
 
     /**
@@ -473,6 +378,19 @@ class TrendAnalysisApp {
         if (resetSatelliteBtn) resetSatelliteBtn.addEventListener('click', () => this.resetChartFilter('satellite'));
         if (resetTypeBtn) resetTypeBtn.addEventListener('click', () => this.resetChartFilter('type'));
         if (resetStatusBtn) resetStatusBtn.addEventListener('click', () => this.resetChartFilter('status'));
+
+        // 数据标签复选框
+        const showStationLabels = document.getElementById('showStationLabels');
+        const showCustomerLabels = document.getElementById('showCustomerLabels');
+        const showSatelliteLabels = document.getElementById('showSatelliteLabels');
+        const showTypeLabels = document.getElementById('showTypeLabels');
+        const showStatusLabels = document.getElementById('showStatusLabels');
+
+        if (showStationLabels) showStationLabels.addEventListener('change', (e) => this.toggleDataLabels('station', e.target.checked));
+        if (showCustomerLabels) showCustomerLabels.addEventListener('change', (e) => this.toggleDataLabels('customer', e.target.checked));
+        if (showSatelliteLabels) showSatelliteLabels.addEventListener('change', (e) => this.toggleDataLabels('satellite', e.target.checked));
+        if (showTypeLabels) showTypeLabels.addEventListener('change', (e) => this.toggleDataLabels('taskType', e.target.checked));
+        if (showStatusLabels) showStatusLabels.addEventListener('change', (e) => this.toggleDataLabels('taskStatus', e.target.checked));
 
         // 下载按钮
         const downloadBtns = document.querySelectorAll('.chart-download-btn');
@@ -952,13 +870,13 @@ class TrendAnalysisApp {
     }
 
     /**
-     * 【uPlot】渲染测站趋势图
+     * 渲染测站趋势图
      */
     async renderStationChart() {
         try {
-            const container = document.getElementById('stationChart');
+            const canvas = document.getElementById('stationChart');
             const emptyState = document.getElementById('stationChartEmpty');
-            if (!container) return;
+            if (!canvas) return;
 
             this.showChartLoading('station');
 
@@ -977,58 +895,42 @@ class TrendAnalysisApp {
             });
 
             if (result && result.records && result.records.length > 0) {
-                // 【Web Worker】使用 Worker 处理数据（返回 Chart.js 格式）
-                const chartData = await this.processDataInWorker(
-                    'station',
-                    result.records,
-                    'station_name',
-                    'record_count',
-                    {
-                        startDate: this.currentFilters.startDate,
-                        endDate: this.currentFilters.endDate,
-                        groupBy: this.currentFilters.groupBy
-                    }
-                );
+                const chartData = convertToChartData(result.records, 'station_name', 'record_count', {
+                    startDate: this.currentFilters.startDate,
+                    endDate: this.currentFilters.endDate,
+                    groupBy: this.currentFilters.groupBy
+                });
 
-                // 转换为 uPlot 格式
-                const { data, series, labels } = this.convertToUPlotData(chartData);
+                // 格式化周期标签
+                chartData.labels = chartData.labels.map(label =>
+                    formatPeriodLabel(label, this.currentFilters.groupBy)
+                );
 
                 // 销毁旧图表
                 if (this.charts.station) {
                     this.charts.station.destroy();
                 }
 
-                // 清空容器并创建新的 div
-                container.innerHTML = '';
-                const chartDiv = document.createElement('div');
-                container.appendChild(chartDiv);
-
-                // 获取容器宽度
-                const width = container.clientWidth || 800;
-
-                // 创建 uPlot 配置
-                const opts = this.getUPlotOptions('测站趋势', 'station', labels, series);
-                opts.width = width - 20; // 留一些边距
-
                 // 创建新图表
-                this.charts.station = new uPlot(opts, data, chartDiv);
+                this.charts.station = new Chart(canvas, {
+                    type: 'line',
+                    data: chartData,
+                    options: this.getChartOptions('测站趋势', 'station')
+                });
 
                 // 创建自定义图例
-                this.createUPlotLegend(this.charts.station, 'stationChartLegend');
+                this.createCustomLegend(this.charts.station, 'stationChartLegend');
 
                 // 显示图表
-                container.style.display = 'block';
+                canvas.style.display = 'block';
                 if (emptyState) emptyState.classList.add('hidden');
-
-                console.log(`✅ [uPlot] 测站图表渲染完成，系列数: ${series.length - 1}`);
             } else {
                 // 显示空状态
                 if (this.charts.station) {
                     this.charts.station.destroy();
                     this.charts.station = null;
                 }
-                container.innerHTML = '';
-                container.style.display = 'none';
+                canvas.style.display = 'none';
                 if (emptyState) emptyState.classList.remove('hidden');
                 // 清空图例
                 const legendContainer = document.getElementById('stationChartLegend');
@@ -1044,13 +946,13 @@ class TrendAnalysisApp {
     }
 
     /**
-     * 【uPlot】渲染客户趋势图
+     * 渲染客户趋势图
      */
     async renderCustomerChart() {
         try {
-            const container = document.getElementById('customerChart');
+            const canvas = document.getElementById('customerChart');
             const emptyState = document.getElementById('customerChartEmpty');
-            if (!container) return;
+            if (!canvas) return;
 
             this.showChartLoading('customer');
 
@@ -1069,47 +971,39 @@ class TrendAnalysisApp {
             });
 
             if (result && result.records && result.records.length > 0) {
-                const chartData = await this.processDataInWorker(
-                    'customer',
-                    result.records,
-                    'customer_name',
-                    'record_count',
-                    {
-                        startDate: this.currentFilters.startDate,
-                        endDate: this.currentFilters.endDate,
-                        groupBy: this.currentFilters.groupBy
-                    }
-                );
+                const chartData = convertToChartData(result.records, 'customer_name', 'record_count', {
+                    startDate: this.currentFilters.startDate,
+                    endDate: this.currentFilters.endDate,
+                    groupBy: this.currentFilters.groupBy
+                });
 
-                const { data, series, labels } = this.convertToUPlotData(chartData);
+                chartData.labels = chartData.labels.map(label =>
+                    formatPeriodLabel(label, this.currentFilters.groupBy)
+                );
 
                 if (this.charts.customer) {
                     this.charts.customer.destroy();
                 }
 
-                container.innerHTML = '';
-                const chartDiv = document.createElement('div');
-                container.appendChild(chartDiv);
+                this.charts.customer = new Chart(canvas, {
+                    type: 'line',
+                    data: chartData,
+                    options: this.getChartOptions('客户趋势', 'customer')
+                });
 
-                const width = container.clientWidth || 800;
-                const opts = this.getUPlotOptions('客户趋势', 'customer', labels, series);
-                opts.width = width - 20;
+                // 创建自定义图例
+                this.createCustomLegend(this.charts.customer, 'customerChartLegend');
 
-                this.charts.customer = new uPlot(opts, data, chartDiv);
-                this.createUPlotLegend(this.charts.customer, 'customerChartLegend');
-
-                container.style.display = 'block';
+                canvas.style.display = 'block';
                 if (emptyState) emptyState.classList.add('hidden');
-
-                console.log(`✅ [uPlot] 客户图表渲染完成，系列数: ${series.length - 1}`);
             } else {
                 if (this.charts.customer) {
                     this.charts.customer.destroy();
                     this.charts.customer = null;
                 }
-                container.innerHTML = '';
-                container.style.display = 'none';
+                canvas.style.display = 'none';
                 if (emptyState) emptyState.classList.remove('hidden');
+                // 清空图例
                 const legendContainer = document.getElementById('customerChartLegend');
                 if (legendContainer) legendContainer.innerHTML = '';
             }
@@ -1123,13 +1017,13 @@ class TrendAnalysisApp {
     }
 
     /**
-     * 【uPlot】渲染卫星趋势图
+     * 渲染卫星趋势图
      */
     async renderSatelliteChart() {
         try {
-            const container = document.getElementById('satelliteChart');
+            const canvas = document.getElementById('satelliteChart');
             const emptyState = document.getElementById('satelliteChartEmpty');
-            if (!container) return;
+            if (!canvas) return;
 
             this.showChartLoading('satellite');
 
@@ -1148,47 +1042,39 @@ class TrendAnalysisApp {
             });
 
             if (result && result.records && result.records.length > 0) {
-                const chartData = await this.processDataInWorker(
-                    'satellite',
-                    result.records,
-                    'satellite_name',
-                    'record_count',
-                    {
-                        startDate: this.currentFilters.startDate,
-                        endDate: this.currentFilters.endDate,
-                        groupBy: this.currentFilters.groupBy
-                    }
-                );
+                const chartData = convertToChartData(result.records, 'satellite_name', 'record_count', {
+                    startDate: this.currentFilters.startDate,
+                    endDate: this.currentFilters.endDate,
+                    groupBy: this.currentFilters.groupBy
+                });
 
-                const { data, series, labels } = this.convertToUPlotData(chartData);
+                chartData.labels = chartData.labels.map(label =>
+                    formatPeriodLabel(label, this.currentFilters.groupBy)
+                );
 
                 if (this.charts.satellite) {
                     this.charts.satellite.destroy();
                 }
 
-                container.innerHTML = '';
-                const chartDiv = document.createElement('div');
-                container.appendChild(chartDiv);
+                this.charts.satellite = new Chart(canvas, {
+                    type: 'line',
+                    data: chartData,
+                    options: this.getChartOptions('卫星趋势', 'satellite')
+                });
 
-                const width = container.clientWidth || 800;
-                const opts = this.getUPlotOptions('卫星趋势', 'satellite', labels, series);
-                opts.width = width - 20;
+                // 创建自定义图例
+                this.createCustomLegend(this.charts.satellite, 'satelliteChartLegend');
 
-                this.charts.satellite = new uPlot(opts, data, chartDiv);
-                this.createUPlotLegend(this.charts.satellite, 'satelliteChartLegend');
-
-                container.style.display = 'block';
+                canvas.style.display = 'block';
                 if (emptyState) emptyState.classList.add('hidden');
-
-                console.log(`✅ [uPlot] 卫星图表渲染完成，系列数: ${series.length - 1}`);
             } else {
                 if (this.charts.satellite) {
                     this.charts.satellite.destroy();
                     this.charts.satellite = null;
                 }
-                container.innerHTML = '';
-                container.style.display = 'none';
+                canvas.style.display = 'none';
                 if (emptyState) emptyState.classList.remove('hidden');
+                // 清空图例
                 const legendContainer = document.getElementById('satelliteChartLegend');
                 if (legendContainer) legendContainer.innerHTML = '';
             }
@@ -1202,13 +1088,13 @@ class TrendAnalysisApp {
     }
 
     /**
-     * 【uPlot】渲染任务类型趋势图
+     * 渲染任务类型趋势图
      */
     async renderTaskTypeChart() {
         try {
-            const container = document.getElementById('typeChart');
+            const canvas = document.getElementById('typeChart');
             const emptyState = document.getElementById('typeChartEmpty');
-            if (!container) return;
+            if (!canvas) return;
 
             this.showChartLoading('type');
 
@@ -1227,47 +1113,39 @@ class TrendAnalysisApp {
             });
 
             if (result && result.records && result.records.length > 0) {
-                const chartData = await this.processDataInWorker(
-                    'taskType',
-                    result.records,
-                    'task_type',
-                    'record_count',
-                    {
-                        startDate: this.currentFilters.startDate,
-                        endDate: this.currentFilters.endDate,
-                        groupBy: this.currentFilters.groupBy
-                    }
-                );
+                const chartData = convertToChartData(result.records, 'task_type', 'record_count', {
+                    startDate: this.currentFilters.startDate,
+                    endDate: this.currentFilters.endDate,
+                    groupBy: this.currentFilters.groupBy
+                });
 
-                const { data, series, labels } = this.convertToUPlotData(chartData);
+                chartData.labels = chartData.labels.map(label =>
+                    formatPeriodLabel(label, this.currentFilters.groupBy)
+                );
 
                 if (this.charts.taskType) {
                     this.charts.taskType.destroy();
                 }
 
-                container.innerHTML = '';
-                const chartDiv = document.createElement('div');
-                container.appendChild(chartDiv);
+                this.charts.taskType = new Chart(canvas, {
+                    type: 'line',
+                    data: chartData,
+                    options: this.getChartOptions('任务类型趋势', 'taskType')
+                });
 
-                const width = container.clientWidth || 800;
-                const opts = this.getUPlotOptions('任务类型趋势', 'taskType', labels, series);
-                opts.width = width - 20;
+                // 创建自定义图例
+                this.createCustomLegend(this.charts.taskType, 'typeChartLegend');
 
-                this.charts.taskType = new uPlot(opts, data, chartDiv);
-                this.createUPlotLegend(this.charts.taskType, 'typeChartLegend');
-
-                container.style.display = 'block';
+                canvas.style.display = 'block';
                 if (emptyState) emptyState.classList.add('hidden');
-
-                console.log(`✅ [uPlot] 任务类型图表渲染完成，系列数: ${series.length - 1}`);
             } else {
                 if (this.charts.taskType) {
                     this.charts.taskType.destroy();
                     this.charts.taskType = null;
                 }
-                container.innerHTML = '';
-                container.style.display = 'none';
+                canvas.style.display = 'none';
                 if (emptyState) emptyState.classList.remove('hidden');
+                // 清空图例
                 const legendContainer = document.getElementById('typeChartLegend');
                 if (legendContainer) legendContainer.innerHTML = '';
             }
@@ -1281,13 +1159,13 @@ class TrendAnalysisApp {
     }
 
     /**
-     * 【uPlot】渲染任务结果状态趋势图
+     * 渲染任务结果状态趋势图
      */
     async renderTaskStatusChart() {
         try {
-            const container = document.getElementById('statusChart');
+            const canvas = document.getElementById('statusChart');
             const emptyState = document.getElementById('statusChartEmpty');
-            if (!container) return;
+            if (!canvas) return;
 
             this.showChartLoading('status');
 
@@ -1306,47 +1184,39 @@ class TrendAnalysisApp {
             });
 
             if (result && result.records && result.records.length > 0) {
-                const chartData = await this.processDataInWorker(
-                    'taskStatus',
-                    result.records,
-                    'task_status',
-                    'record_count',
-                    {
-                        startDate: this.currentFilters.startDate,
-                        endDate: this.currentFilters.endDate,
-                        groupBy: this.currentFilters.groupBy
-                    }
-                );
+                const chartData = convertToChartData(result.records, 'task_status', 'record_count', {
+                    startDate: this.currentFilters.startDate,
+                    endDate: this.currentFilters.endDate,
+                    groupBy: this.currentFilters.groupBy
+                });
 
-                const { data, series, labels } = this.convertToUPlotData(chartData);
+                chartData.labels = chartData.labels.map(label =>
+                    formatPeriodLabel(label, this.currentFilters.groupBy)
+                );
 
                 if (this.charts.taskStatus) {
                     this.charts.taskStatus.destroy();
                 }
 
-                container.innerHTML = '';
-                const chartDiv = document.createElement('div');
-                container.appendChild(chartDiv);
+                this.charts.taskStatus = new Chart(canvas, {
+                    type: 'line',
+                    data: chartData,
+                    options: this.getChartOptions('任务结果状态趋势', 'taskStatus')
+                });
 
-                const width = container.clientWidth || 800;
-                const opts = this.getUPlotOptions('任务结果状态趋势', 'taskStatus', labels, series);
-                opts.width = width - 20;
+                // 创建自定义图例
+                this.createCustomLegend(this.charts.taskStatus, 'statusChartLegend');
 
-                this.charts.taskStatus = new uPlot(opts, data, chartDiv);
-                this.createUPlotLegend(this.charts.taskStatus, 'statusChartLegend');
-
-                container.style.display = 'block';
+                canvas.style.display = 'block';
                 if (emptyState) emptyState.classList.add('hidden');
-
-                console.log(`✅ [uPlot] 任务状态图表渲染完成，系列数: ${series.length - 1}`);
             } else {
                 if (this.charts.taskStatus) {
                     this.charts.taskStatus.destroy();
                     this.charts.taskStatus = null;
                 }
-                container.innerHTML = '';
-                container.style.display = 'none';
+                canvas.style.display = 'none';
                 if (emptyState) emptyState.classList.remove('hidden');
+                // 清空图例
                 const legendContainer = document.getElementById('statusChartLegend');
                 if (legendContainer) legendContainer.innerHTML = '';
             }
@@ -1360,252 +1230,272 @@ class TrendAnalysisApp {
     }
 
     /**
-     * 【uPlot】将 Chart.js 格式数据转换为 uPlot 格式
-     * @param {Object} chartData - Chart.js 格式的数据 {labels: [], datasets: []}
-     * @returns {Object} - {data: [[timestamps], [series1], [series2], ...], series: [{label, color}, ...]}
-     */
-    convertToUPlotData(chartData) {
-        const labels = chartData.labels;
-        const datasets = chartData.datasets;
-
-        // uPlot 需要时间戳或索引作为 x 轴
-        // 由于我们的标签是字符串（如 "2024-01-01"），我们使用索引
-        const timestamps = labels.map((_, index) => index);
-
-        // 构建数据数组：第一个是 x 轴，后面是每个系列的数据
-        const data = [timestamps];
-        const series = [{ label: '周期' }]; // x 轴系列
-
-        datasets.forEach((dataset, index) => {
-            // 将 null/undefined 转换为 null（uPlot 会跳过这些点）
-            const values = dataset.data.map(v => v === null || v === undefined ? null : v);
-            data.push(values);
-
-            series.push({
-                label: dataset.label,
-                stroke: dataset.borderColor || this.getSeriesColor(index),
-                width: 2,
-                points: { show: true, size: 4 },
-                spanGaps: false
-            });
-        });
-
-        return { data, series, labels };
-    }
-
-    /**
-     * 【uPlot】获取系列颜色
-     */
-    getSeriesColor(index) {
-        const colors = [
-            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-            '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF9F40'
-        ];
-        return colors[index % colors.length];
-    }
-
-    /**
-     * 【uPlot】获取 uPlot 配置选项
+     * 获取图表配置选项
      * @param {string} title - 图表标题
-     * @param {string} chartType - 图表类型
-     * @param {Array} labels - 标签数组
-     * @param {Array} series - 系列配置
+     * @param {string} chartType - 图表类型 (station, customer, satellite, taskType, taskStatus)
      */
-    getUPlotOptions(title, chartType, labels, series) {
-        const self = this;
-
+    getChartOptions(title, chartType) {
         return {
-            width: 800,
-            height: 384,  // 对应 h-96 (24rem = 384px)
-            series: series,
-            axes: [
-                {
-                    // x 轴
-                    space: 60,
-                    values: (u, vals) => vals.map(v => labels[v] || ''),
-                    grid: { show: true }
-                },
-                {
-                    // y 轴
-                    space: 50,
-                    values: (u, vals) => vals.map(v => Math.round(v)),
-                    grid: { show: true }
-                }
-            ],
-            scales: {
-                x: { time: false },
-                y: { range: [0, null] }
-            },
-            cursor: {
-                drag: { x: false, y: false },
-                focus: {
-                    prox: 30
-                },
-                points: {
-                    size: 8,
-                    width: 2
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    top: 30,      // 顶部留空间，防止数据标签被遮挡
+                    right: 50,    // 右侧留较大空间，防止标签被遮挡
+                    bottom: 10,   // 底部留空间
+                    left: 20      // 左侧留空间
                 }
             },
-            legend: {
-                show: false  // 使用自定义 HTML 图例
+            interaction: {
+                mode: 'index',  // 交互模式：显示同一索引位置的所有数据
+                intersect: false // 不需要精确悬停在点上
             },
-            hooks: {
-                // 自定义 tooltip
-                setCursor: [
-                    u => {
-                        const idx = u.cursor.idx;
-                        if (idx === null || idx === undefined) {
-                            this.hideUPlotTooltip();
-                            return;
-                        }
-                        this.showUPlotTooltip(u, idx, chartType, labels);
+            elements: {
+                line: {
+                    spanGaps: false  // 确保不跳过0值或空值
+                },
+                point: {
+                    radius: 3,       // 确保所有点都显示，包括0值
+                    hoverRadius: 5
+                }
+            },
+            plugins: {
+                title: {
+                    display: false
+                },
+                legend: {
+                    display: false  // 禁用原生图例，使用自定义 HTML 图例
+                },
+                tooltip: {
+                    enabled: false,  // 禁用默认tooltip
+                    mode: 'index',
+                    intersect: false,
+                    external: this.createScrollableTooltip.bind(this)  // 使用自定义HTML tooltip
+                },
+                datalabels: {
+                    display: this.showDataLabels[chartType] || false,
+                    align: 'top',
+                    anchor: 'end',
+                    offset: 4,        // 标签距离数据点的偏移量
+                    font: {
+                        size: 10,
+                        weight: 'bold'
+                    },
+                    formatter: (value) => {
+                        // 显示所有值，包括0
+                        return value !== null && value !== undefined ? value : '';
                     }
-                ]
+                }
+            },
+            scales: {
+                x: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: '周期'
+                    }
+                },
+                y: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: '数量'
+                    },
+                    beginAtZero: true,
+                    min: 0  // 明确设置最小值为0，确保0值点显示
+                }
             }
         };
     }
 
     /**
-     * 【uPlot】显示自定义 tooltip
+     * 创建自定义 HTML 图例
      */
-    showUPlotTooltip(uplot, idx, chartType, labels) {
-        let tooltipEl = document.getElementById('uplot-tooltip');
+    createCustomLegend(chart, containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
 
+        // 清空现有内容
+        container.innerHTML = '';
+
+        // 生成图例项
+        chart.data.datasets.forEach((dataset, index) => {
+            const meta = chart.getDatasetMeta(index);
+            const isHidden = meta.hidden;
+
+            const item = document.createElement('div');
+            item.className = `chart-legend-item ${isHidden ? 'hidden' : ''}`;
+            item.title = dataset.label; // 悬停显示完整名称
+            item.innerHTML = `
+                <span class="chart-legend-color" style="background-color: ${dataset.borderColor}"></span>
+                <span class="chart-legend-label">${dataset.label}</span>
+            `;
+
+            // 点击切换显示/隐藏
+            item.addEventListener('click', () => {
+                meta.hidden = !meta.hidden;
+                item.classList.toggle('hidden');
+                chart.update();
+            });
+
+            container.appendChild(item);
+        });
+    }
+
+    /**
+     * 创建可滚动的自定义 Tooltip
+     */
+    createScrollableTooltip(context) {
+        // Tooltip 元素
+        let tooltipEl = document.getElementById('chartjs-tooltip');
+
+        // 创建元素（首次调用时）
         if (!tooltipEl) {
             tooltipEl = document.createElement('div');
-            tooltipEl.id = 'uplot-tooltip';
+            tooltipEl.id = 'chartjs-tooltip';
             tooltipEl.style.cssText = `
                 position: absolute;
                 background: rgba(0, 0, 0, 0.9);
                 color: white;
                 border-radius: 8px;
-                pointer-events: none;
+                pointer-events: auto;
                 transition: all 0.1s ease;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
                 z-index: 9999;
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-                padding: 12px;
-                max-width: 400px;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             `;
             document.body.appendChild(tooltipEl);
+
+            // 鼠标进入tooltip时保持显示
+            tooltipEl.addEventListener('mouseenter', () => {
+                tooltipEl._hovered = true;
+            });
+
+            // 鼠标离开tooltip时延迟隐藏
+            tooltipEl.addEventListener('mouseleave', () => {
+                tooltipEl._hovered = false;
+                setTimeout(() => {
+                    if (!tooltipEl._hovered) {
+                        tooltipEl.style.opacity = '0';
+                    }
+                }, 300);
+            });
         }
 
-        // 获取数据
-        const data = uplot.data;
-        const label = labels[idx];
-
-        let total = 0;
-        const dataPoints = [];
-
-        for (let i = 1; i < data.length; i++) {
-            const value = data[i][idx];
-            if (value !== null && !isNaN(value)) {
-                total += value;
-                dataPoints.push({
-                    seriesIdx: i,
-                    label: uplot.series[i].label,
-                    value: value,
-                    color: uplot.series[i].stroke
-                });
+        // 隐藏 tooltip（但如果鼠标在tooltip上则保持显示）
+        const tooltipModel = context.tooltip;
+        if (tooltipModel.opacity === 0) {
+            if (!tooltipEl._hovered) {
+                tooltipEl.style.opacity = '0';
             }
+            return;
         }
 
-        // 按值排序
-        dataPoints.sort((a, b) => b.value - a.value);
+        // 设置内容
+        if (tooltipModel.body) {
+            const titleLines = tooltipModel.title || [];
+            const bodyLines = tooltipModel.body.map(item => item.lines);
 
-        const average = dataPoints.length > 0 ? (total / dataPoints.length).toFixed(1) : 0;
+            // 计算总计和平均值
+            let total = 0;
+            let count = 0;
+            const dataPoints = tooltipModel.dataPoints || [];
 
-        // 构建 HTML
-        let html = '<div>';
-        html += `<div style="font-weight: bold; font-size: 13px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.2);">`;
-        html += `📅 ${label}`;
-        html += '</div>';
+            // 按值排序
+            const sortedPoints = [...dataPoints].sort((a, b) => b.parsed.y - a.parsed.y);
 
-        html += `<div style="max-height: 300px; overflow-y: auto; margin-bottom: 10px;">`;
-        dataPoints.forEach((point, index) => {
-            const percentage = total > 0 ? ((point.value / total) * 100).toFixed(1) : 0;
-            let rankEmoji = '';
-            if (dataPoints.length > 3) {
-                if (index === 0) rankEmoji = '🥇 ';
-                else if (index === 1) rankEmoji = '🥈 ';
-                else if (index === 2) rankEmoji = '🥉 ';
-            }
+            sortedPoints.forEach(point => {
+                if (point.parsed.y !== null && !isNaN(point.parsed.y)) {
+                    total += point.parsed.y;
+                    count++;
+                }
+            });
 
-            html += '<div style="display: flex; align-items: center; margin: 6px 0; font-size: 12px;">';
-            html += `<span style="display: inline-block; width: 10px; height: 10px; background: ${point.color}; margin-right: 8px; border-radius: 2px;"></span>`;
-            html += `<span style="flex: 1;">${rankEmoji}${point.label}</span>`;
-            html += `<span style="font-weight: bold; margin-left: 8px;">${point.value}</span>`;
-            html += `<span style="color: #a0aec0; margin-left: 6px; font-size: 11px;">(${percentage}%)</span>`;
-            html += '</div>';
-        });
-        html += '</div>';
+            const average = count > 0 ? (total / count).toFixed(1) : 0;
 
-        html += '<div style="border-top: 2px solid rgba(74, 222, 128, 0.3); padding-top: 10px; font-size: 13px;">';
-        html += `<div style="display: flex; justify-content: space-between; margin: 4px 0; color: #4ade80; font-weight: bold;">`;
-        html += `<span>📊 总计</span><span>${total}</span>`;
-        html += '</div>';
-        html += `<div style="display: flex; justify-content: space-between; margin: 4px 0; color: #60a5fa;">`;
-        html += `<span>📈 平均</span><span>${average}</span>`;
-        html += '</div>';
-        html += `<div style="display: flex; justify-content: space-between; margin: 4px 0; color: #a0aec0;">`;
-        html += `<span>📋 系列数</span><span>${dataPoints.length}</span>`;
-        html += '</div>';
-        html += '</div>';
+            // 构建 HTML
+            let innerHtml = '<div style="padding: 12px;">';
 
-        html += '</div>';
+            // 标题
+            innerHtml += '<div style="font-weight: bold; font-size: 13px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.2);">';
+            innerHtml += `📅 ${titleLines[0]}`;
+            innerHtml += '</div>';
 
-        tooltipEl.innerHTML = html;
+            // 数据项列表（可滚动）
+            innerHtml += `<div style="
+                max-height: 300px;
+                overflow-y: auto;
+                margin-bottom: 10px;
+                scrollbar-width: thin;
+                scrollbar-color: rgba(74, 222, 128, 0.5) rgba(255, 255, 255, 0.1);
+            " class="custom-scrollbar">`;
 
-        // 定位
-        const left = uplot.cursor.left + uplot.over.getBoundingClientRect().left + 15;
-        const top = uplot.cursor.top + uplot.over.getBoundingClientRect().top;
+            sortedPoints.forEach((point, index) => {
+                const dataset = context.chart.data.datasets[point.datasetIndex];
+                const value = point.parsed.y;
+                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                const color = dataset.borderColor;
+
+                // 排名标识
+                let rankEmoji = '';
+                if (count > 3) {
+                    if (index === 0) rankEmoji = '🥇 ';
+                    else if (index === 1) rankEmoji = '🥈 ';
+                    else if (index === 2) rankEmoji = '🥉 ';
+                }
+
+                innerHtml += '<div style="display: flex; align-items: center; margin: 6px 0; font-size: 12px;">';
+                innerHtml += `<span style="display: inline-block; width: 10px; height: 10px; background: ${color}; margin-right: 8px; border-radius: 2px;"></span>`;
+                innerHtml += `<span style="flex: 1;">${rankEmoji}${dataset.label}</span>`;
+                innerHtml += `<span style="font-weight: bold; margin-left: 8px;">${value}</span>`;
+                innerHtml += `<span style="color: #a0aec0; margin-left: 6px; font-size: 11px;">(${percentage}%)</span>`;
+                innerHtml += '</div>';
+            });
+
+            innerHtml += '</div>';
+
+            // 总计区域
+            innerHtml += '<div style="border-top: 2px solid rgba(74, 222, 128, 0.3); padding-top: 10px; font-size: 13px;">';
+            innerHtml += `<div style="display: flex; justify-content: space-between; margin: 4px 0; color: #4ade80; font-weight: bold;">`;
+            innerHtml += `<span>📊 总计</span><span>${total}</span>`;
+            innerHtml += '</div>';
+            innerHtml += `<div style="display: flex; justify-content: space-between; margin: 4px 0; color: #60a5fa;">`;
+            innerHtml += `<span>📈 平均</span><span>${average}</span>`;
+            innerHtml += '</div>';
+            innerHtml += `<div style="display: flex; justify-content: space-between; margin: 4px 0; color: #a0aec0;">`;
+            innerHtml += `<span>📋 系列数</span><span>${count}</span>`;
+            innerHtml += '</div>';
+            innerHtml += '</div>';
+
+            innerHtml += '</div>';
+
+            tooltipEl.innerHTML = innerHtml;
+        }
+
+        // 定位 - 跟随光标Y坐标
+        const position = context.chart.canvas.getBoundingClientRect();
+        const tooltipHeight = tooltipEl.offsetHeight;
+        const windowHeight = window.innerHeight;
+
+        // X坐标：显示在光标右侧
+        let left = position.left + window.pageXOffset + tooltipModel.caretX + 15;
+
+        // Y坐标：跟随光标，但避免溢出屏幕
+        let top = position.top + window.pageYOffset + tooltipModel.caretY;
+
+        // 如果tooltip会超出屏幕底部，则向上调整
+        if (top + tooltipHeight > window.pageYOffset + windowHeight) {
+            top = window.pageYOffset + windowHeight - tooltipHeight - 10;
+        }
+
+        // 如果tooltip会超出屏幕顶部，则向下调整
+        if (top < window.pageYOffset) {
+            top = window.pageYOffset + 10;
+        }
 
         tooltipEl.style.opacity = '1';
         tooltipEl.style.left = left + 'px';
         tooltipEl.style.top = top + 'px';
-        tooltipEl.style.display = 'block';
-    }
-
-    /**
-     * 【uPlot】隐藏 tooltip
-     */
-    hideUPlotTooltip() {
-        const tooltipEl = document.getElementById('uplot-tooltip');
-        if (tooltipEl) {
-            tooltipEl.style.opacity = '0';
-            tooltipEl.style.display = 'none';
-        }
-    }
-
-    /**
-     * 【uPlot】创建自定义图例
-     */
-    createUPlotLegend(uplot, containerId) {
-        const container = document.getElementById(containerId);
-        if (!container) return;
-
-        container.innerHTML = '';
-
-        // 跳过第一个系列（x 轴）
-        for (let i = 1; i < uplot.series.length; i++) {
-            const series = uplot.series[i];
-            const isHidden = !series.show;
-
-            const item = document.createElement('div');
-            item.className = `chart-legend-item ${isHidden ? 'hidden' : ''}`;
-            item.title = series.label;
-            item.innerHTML = `
-                <span class="chart-legend-color" style="background-color: ${series.stroke}"></span>
-                <span class="chart-legend-label">${series.label}</span>
-            `;
-
-            item.addEventListener('click', () => {
-                uplot.setSeries(i, { show: !series.show });
-                item.classList.toggle('hidden');
-            });
-
-            container.appendChild(item);
-        }
     }
 
     /**
@@ -1681,7 +1571,23 @@ class TrendAnalysisApp {
     }
 
     /**
-     * 【uPlot】下载图表（PNG）
+     * 切换数据标签显示
+     */
+    toggleDataLabels(chartType, show) {
+        console.log(`🏷️ 切换数据标签: ${chartType}, 显示: ${show}`);
+
+        // 保存状态
+        this.showDataLabels[chartType] = show;
+
+        const chart = this.charts[chartType];
+        if (chart) {
+            chart.options.plugins.datalabels.display = show;
+            chart.update();
+        }
+    }
+
+    /**
+     * 下载图表（PNG）
      */
     downloadChart(chartName) {
         const chartMap = {
@@ -1698,26 +1604,13 @@ class TrendAnalysisApp {
             return;
         }
 
-        // uPlot 的 canvas 在 chart.over 旁边
-        const canvas = chartInfo.chart.root.querySelector('canvas.u-over');
-        if (!canvas) {
-            console.warn('找不到图表 canvas 元素');
-            return;
-        }
+        const url = chartInfo.chart.toBase64Image();
+        const link = document.createElement('a');
+        link.download = `${chartInfo.name}_${this.currentFilters.startDate}_${this.currentFilters.endDate}.png`;
+        link.href = url;
+        link.click();
 
-        // 将 canvas 转换为图片
-        try {
-            const url = canvas.toDataURL('image/png');
-            const link = document.createElement('a');
-            link.download = `${chartInfo.name}_${this.currentFilters.startDate}_${this.currentFilters.endDate}.png`;
-            link.href = url;
-            link.click();
-
-            console.log(`📥 下载图表: ${chartInfo.name}`);
-        } catch (error) {
-            console.error('下载图表失败', error);
-            this.showError('下载图表失败');
-        }
+        console.log(`📥 下载图表: ${chartInfo.name}`);
     }
 
     /**
@@ -1771,9 +1664,9 @@ class TrendAnalysisApp {
      * 显示图表加载中
      */
     showChartLoading(chartType) {
-        const canvas = document.getElementById(`${chartType}Chart`);
-        if (canvas) {
-            canvas.style.opacity = '0.5';
+        const loadingOverlay = document.getElementById(`${chartType}ChartLoading`);
+        if (loadingOverlay) {
+            loadingOverlay.classList.remove('hidden');
         }
     }
 
@@ -1781,9 +1674,9 @@ class TrendAnalysisApp {
      * 隐藏图表加载中
      */
     hideChartLoading(chartType) {
-        const canvas = document.getElementById(`${chartType}Chart`);
-        if (canvas) {
-            canvas.style.opacity = '1';
+        const loadingOverlay = document.getElementById(`${chartType}ChartLoading`);
+        if (loadingOverlay) {
+            loadingOverlay.classList.add('hidden');
         }
     }
 
@@ -1803,54 +1696,10 @@ class TrendAnalysisApp {
             }, 3000);
         }
     }
-
-    /**
-     * 【Web Worker】清理资源（页面卸载时调用）
-     */
-    cleanup() {
-        console.log('🧹 开始清理资源...');
-
-        // 销毁 Worker
-        if (this.worker) {
-            // 清理所有待处理的回调
-            this.workerCallbacks.forEach((callback, taskId) => {
-                callback.reject(new Error('页面卸载，任务取消'));
-            });
-            this.workerCallbacks.clear();
-
-            // 终止 Worker
-            this.worker.terminate();
-            this.worker = null;
-            console.log('✅ Worker 已销毁');
-        }
-
-        // 销毁所有图表
-        Object.entries(this.charts).forEach(([name, chart]) => {
-            if (chart) {
-                chart.destroy();
-                console.log(`✅ 图表 ${name} 已销毁`);
-            }
-        });
-
-        // 关闭 WebSocket
-        if (this.wsManager) {
-            this.wsManager.disconnect();
-            console.log('✅ WebSocket 已断开');
-        }
-
-        console.log('✅ 资源清理完成');
-    }
 }
 
 // 页面加载完成后初始化应用
 document.addEventListener('DOMContentLoaded', async () => {
     window.trendApp = new TrendAnalysisApp();
     await window.trendApp.init();
-});
-
-// 【Web Worker】页面卸载时清理资源
-window.addEventListener('beforeunload', () => {
-    if (window.trendApp) {
-        window.trendApp.cleanup();
-    }
 });

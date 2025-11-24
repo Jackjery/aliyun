@@ -70,11 +70,30 @@
     }
 
     function hideNavigation() {
-        // 查找并隐藏导航栏
+        // 检测是否是admin页面
+        const isAdminPage = document.querySelector('.admin-header') !== null;
+
+        if (isAdminPage) {
+            // admin页面：保留自己的header，不做任何隐藏
+            console.log('✅ admin页面：保留完整header');
+            return; // 直接返回，不执行任何隐藏逻辑
+        }
+
+        // 其他页面：隐藏header
+        // 方法1：隐藏所有带 data-hide-in-iframe 属性的元素
+        const elementsToHide = document.querySelectorAll('[data-hide-in-iframe]');
+        if (elementsToHide.length > 0) {
+            elementsToHide.forEach(el => {
+                el.style.display = 'none';
+                console.log('✅ 已隐藏元素:', el.tagName);
+            });
+        }
+
+        // 方法2：查找并隐藏header元素（兜底方案）
         const header = document.querySelector('header');
-        if (header) {
+        if (header && header.style.display !== 'none') {
             header.style.display = 'none';
-            console.log('✅ 导航栏已隐藏');
+            console.log('✅ 导航栏已隐藏(header)');
         }
 
         // 调整主内容区域的上边距
@@ -82,6 +101,13 @@
         if (main) {
             main.style.paddingTop = '0';
             main.style.marginTop = '0';
+        }
+
+        // 调整body的上边距
+        const body = document.body;
+        if (body) {
+            body.style.paddingTop = '0';
+            body.style.marginTop = '0';
         }
 
         // 调整 sticky 筛选条件的 top 值（针对 trend-analysis.html）
