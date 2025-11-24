@@ -32,9 +32,9 @@
     <!-- 状态管理器 - IndexedDB -->
     <script src="../public/js/common/state-manager.js"></script>
 
-    <!-- 图表库 - 移除defer确保顺序加载 -->
-    <script src="../public/lib/chart.min.js"></script>
-    <script src="../public/lib/chartjs-plugin-datalabels.min.js"></script>
+    <!-- uPlot 图表库 - 高性能时序图表 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.24/dist/uPlot.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/uplot@1.6.24/dist/uPlot.iife.min.js"></script>
     <script src="../public/js/pages/trend/trend-analysis-init.js"></script>
 </head>
 <body style="background-color: rgb(var(--bg-primary)); min-height: 100vh; color: rgb(var(--text-primary)); transition: all 0.3s;">
@@ -243,10 +243,6 @@
 
                         <div class="h-5 w-px bg-gray-300"></div>
 
-                        <label class="flex items-center justify-center px-2.5 bg-secondary/10 text-secondary rounded cursor-pointer hover:bg-secondary/20 transition whitespace-nowrap" style="height: 32px;">
-                            <input type="checkbox" id="showStationLabels" class="mr-1.5 w-4 h-4">
-                            <span class="text-sm font-medium">显示数据标签</span>
-                        </label>
                         <button class="chart-download-btn flex items-center justify-center px-2.5 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition whitespace-nowrap" style="height: 32px;"
                                 data-chart="stationChart" data-type="image">
                             <svg class="icon"><use href="#icon-download"/></svg>
@@ -262,7 +258,7 @@
 
                 <div class="h-96 border border-default rounded-lg p-4 relative flex">
                     <div class="flex-1 relative min-w-0">
-                        <canvas id="stationChart"></canvas>
+                        <div id="stationChart"></div>
                         <div class="absolute inset-0 flex items-center justify-center text-gray-500 hidden" id="stationChartEmpty">
                             <div class="text-center">
                                 <svg class="icon icon-2xl mb-2"><use href="#icon-line-chart"/></svg>
@@ -305,10 +301,6 @@
 
                         <div class="h-5 w-px bg-gray-300"></div>
 
-                        <label class="flex items-center justify-center px-2.5 bg-secondary/10 text-secondary rounded cursor-pointer hover:bg-secondary/20 transition whitespace-nowrap" style="height: 32px;">
-                            <input type="checkbox" id="showCustomerLabels" class="mr-1.5 w-4 h-4">
-                            <span class="text-sm font-medium">显示数据标签</span>
-                        </label>
                         <button class="chart-download-btn flex items-center justify-center px-2.5 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition whitespace-nowrap" style="height: 32px;"
                                 data-chart="customerChart" data-type="image">
                             <svg class="icon"><use href="#icon-download"/></svg>
@@ -324,7 +316,7 @@
 
                 <div class="h-96 border border-default rounded-lg p-4 relative flex">
                     <div class="flex-1 relative min-w-0">
-                        <canvas id="customerChart"></canvas>
+                        <div id="customerChart"></div>
                         <div class="absolute inset-0 flex items-center justify-center text-gray-500 hidden" id="customerChartEmpty">
                             <div class="text-center">
                                 <svg class="icon icon-2xl mb-2"><use href="#icon-line-chart"/></svg>
@@ -367,10 +359,6 @@
 
                         <div class="h-5 w-px bg-gray-300"></div>
 
-                        <label class="flex items-center justify-center px-2.5 bg-secondary/10 text-secondary rounded cursor-pointer hover:bg-secondary/20 transition whitespace-nowrap" style="height: 32px;">
-                            <input type="checkbox" id="showSatelliteLabels" class="mr-1.5 w-4 h-4">
-                            <span class="text-sm font-medium">显示数据标签</span>
-                        </label>
                         <button class="chart-download-btn flex items-center justify-center px-2.5 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition whitespace-nowrap" style="height: 32px;"
                                 data-chart="satelliteChart" data-type="image">
                             <svg class="icon"><use href="#icon-download"/></svg>
@@ -386,7 +374,7 @@
 
                 <div class="h-96 border border-default rounded-lg p-4 relative flex">
                     <div class="flex-1 relative min-w-0">
-                        <canvas id="satelliteChart"></canvas>
+                        <div id="satelliteChart"></div>
                         <div class="absolute inset-0 flex items-center justify-center text-gray-500 hidden" id="satelliteChartEmpty">
                             <div class="text-center">
                                 <svg class="icon icon-2xl mb-2"><use href="#icon-line-chart"/></svg>
@@ -429,10 +417,6 @@
 
                         <div class="h-5 w-px bg-gray-300"></div>
 
-                        <label class="flex items-center justify-center px-2.5 bg-secondary/10 text-secondary rounded cursor-pointer hover:bg-secondary/20 transition whitespace-nowrap" style="height: 32px;">
-                            <input type="checkbox" id="showTypeLabels" class="mr-1.5 w-4 h-4">
-                            <span class="text-sm font-medium">显示数据标签</span>
-                        </label>
                         <button class="chart-download-btn flex items-center justify-center px-2.5 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition whitespace-nowrap" style="height: 32px;"
                                 data-chart="typeChart" data-type="image">
                             <svg class="icon"><use href="#icon-download"/></svg>
@@ -448,7 +432,7 @@
 
                 <div class="h-96 border border-default rounded-lg p-4 relative flex">
                     <div class="flex-1 relative min-w-0">
-                        <canvas id="typeChart"></canvas>
+                        <div id="typeChart"></div>
                         <div class="absolute inset-0 flex items-center justify-center text-gray-500 hidden" id="typeChartEmpty">
                             <div class="text-center">
                                 <svg class="icon icon-2xl mb-2"><use href="#icon-line-chart"/></svg>
@@ -491,10 +475,6 @@
 
                         <div class="h-5 w-px bg-gray-300"></div>
 
-                        <label class="flex items-center justify-center px-2.5 bg-secondary/10 text-secondary rounded cursor-pointer hover:bg-secondary/20 transition whitespace-nowrap" style="height: 32px;">
-                            <input type="checkbox" id="showStatusLabels" class="mr-1.5 w-4 h-4">
-                            <span class="text-sm font-medium">显示数据标签</span>
-                        </label>
                         <button class="chart-download-btn flex items-center justify-center px-2.5 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition whitespace-nowrap" style="height: 32px;"
                                 data-chart="statusChart" data-type="image">
                             <svg class="icon"><use href="#icon-download"/></svg>
@@ -510,7 +490,7 @@
 
                 <div class="h-96 border border-default rounded-lg p-4 relative flex">
                     <div class="flex-1 relative min-w-0">
-                        <canvas id="statusChart"></canvas>
+                        <div id="statusChart"></div>
                         <div class="absolute inset-0 flex items-center justify-center text-gray-500 hidden" id="statusChartEmpty">
                             <div class="text-center">
                                 <svg class="icon icon-2xl mb-2"><use href="#icon-line-chart"/></svg>

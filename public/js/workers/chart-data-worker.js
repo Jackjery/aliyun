@@ -25,7 +25,7 @@ self.addEventListener('message', (e) => {
         }
 
         const endTime = performance.now();
-        console.log(`[Worker] 任务 ${taskId} 处理完成，耗时: ${(endTime - startTime).toFixed(2)}ms，系列数: ${chartData.datasets.length}`);
+        console.log(`[Worker] 任务 ${taskId} 处理完成，耗时: ${(endTime - startTime).toFixed(2)}ms，系列数: ${chartData.datasets.length}${originalCount > MAX_SERIES ? ` (原始: ${originalCount})` : ''}`);
 
         // 返回处理结果
         self.postMessage({
