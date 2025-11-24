@@ -9,6 +9,11 @@ class TrendAnalysisApp {
         // WebSocket 管理器
         this.wsManager = null;
 
+        // 【Web Worker】图表数据处理 Worker
+        this.worker = null;
+        this.workerTaskId = 0;
+        this.workerCallbacks = new Map();
+
         // 多选下拉框实例（顶部筛选器）
         this.topFilters = {
             station: null,
@@ -88,6 +93,9 @@ class TrendAnalysisApp {
         // 初始化日期
         this.initializeDates();
 
+        // 【Web Worker】初始化 Worker
+        this.initWorker();
+
         // 初始化 WebSocket
         await this.initWebSocket();
 
@@ -107,6 +115,102 @@ class TrendAnalysisApp {
         await this.loadFilterOptions();
 
         console.log('✅ TrendAnalysisApp 初始化完成');
+    }
+
+    /**
+     * 【Web Worker】初始化 Worker
+     */
+    initWorker() {
+        try {
+            // 创建 Worker（使用相对于 HTML 文件的路径）
+            this.worker = new Worker('../public/js/workers/chart-data-worker.js');
+
+            // 监听 Worker 消息
+            this.worker.addEventListener('message', (e) => {
+                this.handleWorkerMessage(e.data);
+            });
+
+            // 监听 Worker 错误
+            this.worker.addEventListener('error', (e) => {
+                console.error('❌ [Worker] Worker 发生错误', e);
+            });
+
+            console.log('✅ [Worker] Chart Data Worker 初始化成功');
+        } catch (error) {
+            console.warn('⚠️ [Worker] Worker 初始化失败，将使用主线程处理数据', error);
+            this.worker = null;
+        }
+    }
+
+    /**
+     * 【Web Worker】处理 Worker 返回的消息
+     */
+    handleWorkerMessage(message) {
+        const { taskId, success, data, error } = message;
+
+        const callback = this.workerCallbacks.get(taskId);
+        if (!callback) {
+            console.warn(`⚠️ [Worker] 找不到任务 ${taskId} 的回调`);
+            return;
+        }
+
+        // 执行回调
+        if (success) {
+            callback.resolve(data);
+        } else {
+            callback.reject(new Error(error.message));
+        }
+
+        // 清理回调
+        this.workerCallbacks.delete(taskId);
+    }
+
+    /**
+     * 【Web Worker】在 Worker 中处理图表数据
+     * @param {string} type - 图表类���
+     * @param {Array} records - 原始记录
+     * @param {string} dimensionField - 维度字段名
+     * @param {string} valueField - 值字段名
+     * @param {Object} options - 选项
+     * @returns {Promise<Object>} - Chart.js 数据格式
+     */
+    processDataInWorker(type, records, dimensionField, valueField, options) {
+        return new Promise((resolve, reject) => {
+            // 如果 Worker 不可用，降级到主线程处理
+            if (!this.worker) {
+                console.warn('⚠️ [Worker] Worker 不可用，使用主线程处理数据');
+                try {
+                    const chartData = convertToChartData(records, dimensionField, valueField, options);
+                    if (options.groupBy) {
+                        chartData.labels = chartData.labels.map(label =>
+                            formatPeriodLabel(label, options.groupBy)
+                        );
+                    }
+                    resolve(chartData);
+                } catch (error) {
+                    reject(error);
+                }
+                return;
+            }
+
+            // 生成任务 ID
+            const taskId = ++this.workerTaskId;
+
+            // 保存回调
+            this.workerCallbacks.set(taskId, { resolve, reject });
+
+            // 发送任务给 Worker
+            this.worker.postMessage({
+                taskId,
+                type,
+                records,
+                dimensionField,
+                valueField,
+                options
+            });
+
+            console.log(`📤 [Worker] 已发送任务 ${taskId} (${type}) 给 Worker，记录数: ${records.length}`);
+        });
     }
 
     /**
@@ -895,15 +999,17 @@ class TrendAnalysisApp {
             });
 
             if (result && result.records && result.records.length > 0) {
-                const chartData = convertToChartData(result.records, 'station_name', 'record_count', {
-                    startDate: this.currentFilters.startDate,
-                    endDate: this.currentFilters.endDate,
-                    groupBy: this.currentFilters.groupBy
-                });
-
-                // 格式化周期标签
-                chartData.labels = chartData.labels.map(label =>
-                    formatPeriodLabel(label, this.currentFilters.groupBy)
+                // 【Web Worker】使用 Worker 处理数据
+                const chartData = await this.processDataInWorker(
+                    'station',
+                    result.records,
+                    'station_name',
+                    'record_count',
+                    {
+                        startDate: this.currentFilters.startDate,
+                        endDate: this.currentFilters.endDate,
+                        groupBy: this.currentFilters.groupBy
+                    }
                 );
 
                 // 销毁旧图表
@@ -971,14 +1077,17 @@ class TrendAnalysisApp {
             });
 
             if (result && result.records && result.records.length > 0) {
-                const chartData = convertToChartData(result.records, 'customer_name', 'record_count', {
-                    startDate: this.currentFilters.startDate,
-                    endDate: this.currentFilters.endDate,
-                    groupBy: this.currentFilters.groupBy
-                });
-
-                chartData.labels = chartData.labels.map(label =>
-                    formatPeriodLabel(label, this.currentFilters.groupBy)
+                // 【Web Worker】使用 Worker 处理数据
+                const chartData = await this.processDataInWorker(
+                    'customer',
+                    result.records,
+                    'customer_name',
+                    'record_count',
+                    {
+                        startDate: this.currentFilters.startDate,
+                        endDate: this.currentFilters.endDate,
+                        groupBy: this.currentFilters.groupBy
+                    }
                 );
 
                 if (this.charts.customer) {
@@ -1042,14 +1151,17 @@ class TrendAnalysisApp {
             });
 
             if (result && result.records && result.records.length > 0) {
-                const chartData = convertToChartData(result.records, 'satellite_name', 'record_count', {
-                    startDate: this.currentFilters.startDate,
-                    endDate: this.currentFilters.endDate,
-                    groupBy: this.currentFilters.groupBy
-                });
-
-                chartData.labels = chartData.labels.map(label =>
-                    formatPeriodLabel(label, this.currentFilters.groupBy)
+                // 【Web Worker】使用 Worker 处理数据
+                const chartData = await this.processDataInWorker(
+                    'satellite',
+                    result.records,
+                    'satellite_name',
+                    'record_count',
+                    {
+                        startDate: this.currentFilters.startDate,
+                        endDate: this.currentFilters.endDate,
+                        groupBy: this.currentFilters.groupBy
+                    }
                 );
 
                 if (this.charts.satellite) {
@@ -1113,14 +1225,17 @@ class TrendAnalysisApp {
             });
 
             if (result && result.records && result.records.length > 0) {
-                const chartData = convertToChartData(result.records, 'task_type', 'record_count', {
-                    startDate: this.currentFilters.startDate,
-                    endDate: this.currentFilters.endDate,
-                    groupBy: this.currentFilters.groupBy
-                });
-
-                chartData.labels = chartData.labels.map(label =>
-                    formatPeriodLabel(label, this.currentFilters.groupBy)
+                // 【Web Worker】使用 Worker 处理数据
+                const chartData = await this.processDataInWorker(
+                    'taskType',
+                    result.records,
+                    'task_type',
+                    'record_count',
+                    {
+                        startDate: this.currentFilters.startDate,
+                        endDate: this.currentFilters.endDate,
+                        groupBy: this.currentFilters.groupBy
+                    }
                 );
 
                 if (this.charts.taskType) {
@@ -1184,14 +1299,17 @@ class TrendAnalysisApp {
             });
 
             if (result && result.records && result.records.length > 0) {
-                const chartData = convertToChartData(result.records, 'task_status', 'record_count', {
-                    startDate: this.currentFilters.startDate,
-                    endDate: this.currentFilters.endDate,
-                    groupBy: this.currentFilters.groupBy
-                });
-
-                chartData.labels = chartData.labels.map(label =>
-                    formatPeriodLabel(label, this.currentFilters.groupBy)
+                // 【Web Worker】使用 Worker 处理数据
+                const chartData = await this.processDataInWorker(
+                    'taskStatus',
+                    result.records,
+                    'task_status',
+                    'record_count',
+                    {
+                        startDate: this.currentFilters.startDate,
+                        endDate: this.currentFilters.endDate,
+                        groupBy: this.currentFilters.groupBy
+                    }
                 );
 
                 if (this.charts.taskStatus) {
@@ -1696,10 +1814,54 @@ class TrendAnalysisApp {
             }, 3000);
         }
     }
+
+    /**
+     * 【Web Worker】清理资源（页面卸载时调用）
+     */
+    cleanup() {
+        console.log('🧹 开始清理资源...');
+
+        // 销毁 Worker
+        if (this.worker) {
+            // 清理所有待处理的回调
+            this.workerCallbacks.forEach((callback, taskId) => {
+                callback.reject(new Error('页面卸载，任务取消'));
+            });
+            this.workerCallbacks.clear();
+
+            // 终止 Worker
+            this.worker.terminate();
+            this.worker = null;
+            console.log('✅ Worker 已销毁');
+        }
+
+        // 销毁所有图表
+        Object.entries(this.charts).forEach(([name, chart]) => {
+            if (chart) {
+                chart.destroy();
+                console.log(`✅ 图表 ${name} 已销毁`);
+            }
+        });
+
+        // 关闭 WebSocket
+        if (this.wsManager) {
+            this.wsManager.disconnect();
+            console.log('✅ WebSocket 已断开');
+        }
+
+        console.log('✅ 资源清理完成');
+    }
 }
 
 // 页面加载完成后初始化应用
 document.addEventListener('DOMContentLoaded', async () => {
     window.trendApp = new TrendAnalysisApp();
     await window.trendApp.init();
+});
+
+// 【Web Worker】页面卸载时清理资源
+window.addEventListener('beforeunload', () => {
+    if (window.trendApp) {
+        window.trendApp.cleanup();
+    }
 });

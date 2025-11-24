@@ -14,8 +14,12 @@ class MultiSelectDropdown {
         this.onChange = onChange;
 
         this.selectedValues = [];
+        this.selectionOrder = []; // 记录选择的顺序，用于Backspace键删除
         this.allOptions = [];
         this.isAllSelected = false;
+
+        // 绑定键盘事件处理函数到实例，以便后续添加/移除
+        this.handleKeyDown = this.handleKeyDown.bind(this);
 
         this.init();
     }
@@ -67,6 +71,17 @@ class MultiSelectDropdown {
                 this.closeDropdown();
             }
         });
+    }
+
+    /**
+     * 处理键盘Backspace键事件
+     */
+    handleKeyDown(e) {
+        // 按下Backspace键时删除最新添加的选项
+        if (e.key === 'Backspace') {
+            e.preventDefault();
+            this.removeLatestSelection();
+        }
     }
 
     setOptions(options) {
@@ -145,8 +160,12 @@ class MultiSelectDropdown {
     toggleSelection(value, isChecked) {
         if (isChecked && !this.selectedValues.includes(value)) {
             this.selectedValues.push(value);
+            // 记录选择顺序
+            this.selectionOrder.push(value);
         } else if (!isChecked && this.selectedValues.includes(value)) {
             this.selectedValues = this.selectedValues.filter(v => v !== value);
+            // 从选择顺序中移除
+            this.selectionOrder = this.selectionOrder.filter(v => v !== value);
         }
 
         this.updateDisplay();
@@ -211,9 +230,13 @@ class MultiSelectDropdown {
                         .map(cb => cb.dataset.value)
                         .filter(Boolean);
 
+                    // 全选时，记录所有新增的选项到选择顺序中
+                    this.selectionOrder = [...this.selectedValues];
+
                     optionCheckboxes.forEach(cb => cb.checked = true);
                 } else {
                     this.selectedValues = [];
+                    this.selectionOrder = []; // 清空选择顺序
                     optionCheckboxes.forEach(cb => cb.checked = false);
                 }
 
@@ -249,9 +272,13 @@ class MultiSelectDropdown {
                         .map(cb => cb.dataset.value)
                         .filter(Boolean);
 
+                    // 全选时，记录所有新增的选项到选择顺序中
+                    this.selectionOrder = [...this.selectedValues];
+
                     optionCheckboxes.forEach(cb => cb.checked = true);
                 } else {
                     this.selectedValues = [];
+                    this.selectionOrder = []; // 清空选择顺序
                     optionCheckboxes.forEach(cb => cb.checked = false);
                 }
 
@@ -339,12 +366,29 @@ class MultiSelectDropdown {
 
     clearSelection() {
         this.selectedValues = [];
+        this.selectionOrder = []; // 清空选择顺序
         this.updateDisplay();
         this.updateTags();
         this.updateSelectAllStatus();
         const searchInput = document.getElementById(this.searchId);
         this.renderOptions(searchInput ? searchInput.value : '');
         if (this.onChange) this.onChange([]);
+    }
+
+    /**
+     * 删除最新添加的选项（按Backspace键时调用）
+     */
+    removeLatestSelection() {
+        // 如果没有选中的项，直接返回
+        if (this.selectionOrder.length === 0) {
+            return;
+        }
+
+        // 获取最后添加的选项
+        const latestValue = this.selectionOrder[this.selectionOrder.length - 1];
+
+        // 取消选择该选项
+        this.toggleSelection(latestValue, false);
     }
 
     toggleDropdown() {
@@ -369,6 +413,9 @@ class MultiSelectDropdown {
         if (dropdownEl) {
             dropdownEl.classList.remove('dropdown-open');
         }
+
+        // 关闭下拉框时移除键盘事件监听器
+        document.removeEventListener('keydown', this.handleKeyDown);
     }
 
     openDropdown() {
@@ -380,6 +427,9 @@ class MultiSelectDropdown {
         if (dropdownEl) {
             dropdownEl.classList.add('dropdown-open');
         }
+
+        // 打开下拉框时添加键盘事件监听器
+        document.addEventListener('keydown', this.handleKeyDown);
     }
 
     getSelectedValues() {
@@ -390,6 +440,8 @@ class MultiSelectDropdown {
     setSelectedValues(values) {
         // 设置选中的值
         this.selectedValues = [...values];
+        // 同步选择顺序
+        this.selectionOrder = [...values];
 
         // 更新显示
         this.updateDisplay();
