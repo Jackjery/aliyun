@@ -877,7 +877,7 @@
                     tr.className = 'table-row';
                     tr.innerHTML = `
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <input type="checkbox" class="row-checkbox rounded" data-id="${record.id}">
+                            <input type="checkbox" class="row-checkbox rounded" data-id="${record.plan_id}">
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                             ${record.plan_id}
@@ -891,10 +891,10 @@
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                            <button onclick="app.editRecord(${record.id})" class="text-primary hover:text-primary/70">
+                            <button onclick="app.editRecord('${record.plan_id}')" class="text-primary hover:text-primary/70">
                                 <i class="fa fa-edit mr-1"></i>编辑
                             </button>
-                            <button onclick="app.deleteRecord(${record.id})" class="text-danger hover:text-danger/70">
+                            <button onclick="app.deleteRecord('${record.plan_id}')" class="text-danger hover:text-danger/70">
                                 <i class="fa fa-trash mr-1"></i>删除
                             </button>
                         </td>
@@ -943,20 +943,20 @@
                 this.loadData();
             }
 
-            async editRecord(id) {
+            async editRecord(planId) {
                 try {
-                    const response = await fetch(`${CONFIG.API_BASE_URL}/records/${id}`, {
+                    const response = await fetch(`${CONFIG.API_BASE_URL}/records/${planId}`, {
                         headers: { 'Authorization': `Bearer ${this.token}` }
                     });
 
                     const result = await response.json();
                     if (response.ok && result.success) {
                         const record = result.data;
-                        document.getElementById('editId').value = record.id;
+                        document.getElementById('editId').value = record.plan_id;
                         document.getElementById('editPlanId').value = record.plan_id;
                         document.getElementById('editStartTime').value = new Date(record.start_time).toISOString().slice(0, 16);
                         document.getElementById('editTaskResult').value = record.task_result;
-                        
+
                         document.getElementById('editModal').classList.remove('hidden');
                     }
                 } catch (error) {
@@ -964,13 +964,13 @@
                 }
             }
 
-            async deleteRecord(id) {
+            async deleteRecord(planId) {
                 if (!confirm('确定要删除这条记录吗？此操作不可恢复。')) {
                     return;
                 }
 
                 try {
-                    const response = await fetch(`${CONFIG.API_BASE_URL}/records/${id}`, {
+                    const response = await fetch(`${CONFIG.API_BASE_URL}/records/${planId}`, {
                         method: 'DELETE',
                         headers: { 'Authorization': `Bearer ${this.token}` }
                     });
@@ -989,8 +989,8 @@
 
             async saveEdit(e) {
                 e.preventDefault();
-                
-                const id = document.getElementById('editId').value;
+
+                const planId = document.getElementById('editId').value;
                 const data = {
                     plan_id: document.getElementById('editPlanId').value,
                     start_time: document.getElementById('editStartTime').value,
@@ -998,7 +998,7 @@
                 };
 
                 try {
-                    const response = await fetch(`${CONFIG.API_BASE_URL}/records/${id}`, {
+                    const response = await fetch(`${CONFIG.API_BASE_URL}/records/${planId}`, {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',

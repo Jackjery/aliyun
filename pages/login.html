@@ -212,8 +212,8 @@
                 hideError();
 
                 try {
-                    // 硬编码登录URL（直接使用阿里云函数地址）
-                    const loginUrl = 'https://login-paixjucluh.cn-hangzhou.fcapp.run';
+                    // 使用WebSocket服务器的登录接口
+                    const loginUrl = 'https://ws.nxjyx.com.cn/login';
                     console.log('Login URL:', loginUrl);
 
                     const response = await fetch(loginUrl, {
@@ -304,7 +304,7 @@
             const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
             if (token) {
                 // 验证token是否有效
-                fetch('/api/verify', {
+                fetch('https://ws.nxjyx.com.cn/verify', {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
