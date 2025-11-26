@@ -195,6 +195,16 @@
             navigateTo(page, pushState = true) {
                 if (page === this.currentPage) return;
 
+                // 🔐 导航守卫：访问admin页面需要验证token
+                if (page === 'admin') {
+                    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+                    if (!token) {
+                        console.warn('⚠️ 访问admin页面需要登录，重定向到登录页');
+                        window.location.href = 'pages/login.html';
+                        return;
+                    }
+                }
+
                 console.log(`🔀 页面切换: ${this.currentPage} → ${page}`);
 
                 // 隐藏当前页面
