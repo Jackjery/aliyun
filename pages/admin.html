@@ -19,6 +19,30 @@
     <!-- Excel库 -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
+    <!-- 权限预检查 - 在页面渲染前执行，防止未授权访问闪现 -->
+    <script>
+        (function() {
+            // 立即检查token，防止页面内容闪现
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+
+            if (!token) {
+                console.warn('⚠️ 未授权访问，立即重定向到登录页');
+
+                // 判断是否在iframe中
+                if (window.self !== window.top) {
+                    // 在iframe中，重定向父窗口
+                    window.top.location.href = 'pages/login.html';
+                } else {
+                    // 不在iframe中，直接重定向
+                    window.location.href = 'login.html';
+                }
+
+                // 阻止页面继续渲染
+                document.write('<style>body{display:none!important;}</style>');
+            }
+        })();
+    </script>
+
     <!-- iframe 辅助脚本 - 检测并隐藏导航栏 -->
     <script src="../public/js/common/iframe-helper.js"></script>
 
