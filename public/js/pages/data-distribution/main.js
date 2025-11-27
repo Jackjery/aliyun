@@ -949,4 +949,26 @@ class DataDistributionApp {
 document.addEventListener('DOMContentLoaded', async () => {
     window.app = new DataDistributionApp();
     await window.app.init();
+
+    // 通知父窗口页面已完全就绪
+    if (window.parent !== window) {
+        window.parent.postMessage({
+            type: 'pageReady',
+            page: 'distribution'
+        }, window.location.origin);
+        console.log('📨 已通知父窗口：data-distribution 页面完全就绪');
+    }
+
+    // 监听父窗口的询问消息（用于页面切换回来时）
+    window.addEventListener('message', (event) => {
+        if (event.origin !== window.location.origin) return;
+
+        if (event.data && event.data.type === 'requestPageReady') {
+            console.log('📩 收到父窗口询问，回复页面就绪');
+            window.parent.postMessage({
+                type: 'pageReady',
+                page: 'distribution'
+            }, window.location.origin);
+        }
+    });
 });

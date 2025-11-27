@@ -61,6 +61,61 @@
             font-weight: 500;
             border-bottom: 2px solid rgb(var(--color-primary));
         }
+
+        /* 骨架屏样式 */
+        #iframe-skeleton {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgb(var(--bg-primary));
+            z-index: 10;
+            display: none;
+            transition: opacity 0.3s ease;
+        }
+
+        #iframe-skeleton.show {
+            display: block;
+            opacity: 1;
+        }
+
+        #iframe-skeleton.hide {
+            opacity: 0;
+        }
+
+        /* 骨架屏动画 */
+        @keyframes skeleton-pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .skeleton-animate {
+            animation: skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        .skeleton-box {
+            background: linear-gradient(90deg,
+                rgba(var(--text-secondary), 0.1) 25%,
+                rgba(var(--text-secondary), 0.15) 50%,
+                rgba(var(--text-secondary), 0.1) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-shimmer 2s infinite;
+            border-radius: 4px;
+        }
+
+        @keyframes skeleton-shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+            100% {
+                background-position: -200% 0;
+            }
+        }
     </style>
 </head>
 <body style="background-color: rgb(var(--bg-primary)); min-height: 100vh; margin: 0; padding: 0;">
@@ -101,6 +156,54 @@
 
     <!-- iframe 容器 -->
     <div class="iframe-container">
+        <!-- 骨架屏 -->
+        <div id="iframe-skeleton">
+            <div class="container mx-auto px-4 py-6 h-full overflow-auto">
+                <!-- 头部骨架 -->
+                <div class="flex justify-between items-center mb-6">
+                    <div class="h-8 w-48 skeleton-box"></div>
+                    <div class="h-10 w-32 skeleton-box"></div>
+                </div>
+
+                <!-- 统计卡片骨架 -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-card p-4 rounded shadow h-24">
+                        <div class="h-4 w-20 skeleton-box mb-2"></div>
+                        <div class="h-8 w-16 skeleton-box"></div>
+                    </div>
+                    <div class="bg-card p-4 rounded shadow h-24">
+                        <div class="h-4 w-20 skeleton-box mb-2"></div>
+                        <div class="h-8 w-16 skeleton-box"></div>
+                    </div>
+                    <div class="bg-card p-4 rounded shadow h-24">
+                        <div class="h-4 w-20 skeleton-box mb-2"></div>
+                        <div class="h-8 w-16 skeleton-box"></div>
+                    </div>
+                    <div class="bg-card p-4 rounded shadow h-24">
+                        <div class="h-4 w-20 skeleton-box mb-2"></div>
+                        <div class="h-8 w-16 skeleton-box"></div>
+                    </div>
+                </div>
+
+                <!-- 主要内容区骨架 -->
+                <div class="bg-card p-6 rounded shadow mb-6">
+                    <div class="h-6 w-32 skeleton-box mb-4"></div>
+                    <div class="h-80 skeleton-box"></div>
+                </div>
+
+                <!-- 加载提示 -->
+                <div class="text-center">
+                    <div class="inline-flex items-center" style="color: rgb(var(--color-primary));">
+                        <svg class="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span class="font-medium">正在加载页面...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 首页 iframe -->
         <iframe id="frame-dashboard" class="page-frame active" src="pages/dashboard.html"></iframe>
 
@@ -151,6 +254,7 @@
             constructor() {
                 this.currentPage = 'dashboard';
                 this.loadedFrames = new Set(['dashboard']); // 首页已加载
+                this.skeleton = document.getElementById('iframe-skeleton');
                 this.init();
             }
 
@@ -172,6 +276,23 @@
                     this.navigateTo(page, false);
                 });
 
+                // 监听来自 iframe 的消息
+                window.addEventListener('message', (event) => {
+                    // 安全检查：确保消息来自同源
+                    if (event.origin !== window.location.origin) return;
+
+                    // 处理页面就绪消息
+                    if (event.data && event.data.type === 'pageReady') {
+                        const page = event.data.page;
+                        console.log(`✅ 收到页面就绪消息: ${page}`);
+
+                        // 如果是当前页面，隐藏骨架屏
+                        if (page === this.currentPage) {
+                            this.hideSkeleton();
+                        }
+                    }
+                });
+
                 // 检查 URL hash，决定初始显示哪个页面
                 const hash = window.location.hash.slice(1); // 去掉 # 号
                 const initialPage = hash || 'dashboard';
@@ -179,12 +300,64 @@
                 if (initialPage !== 'dashboard') {
                     // 如果不是首页，需要先导航过去
                     this.navigateTo(initialPage, false);
+                } else {
+                    // 如果是首页 dashboard，显示骨架屏并等待就绪消息
+                    this.showSkeleton();
+                    // 等待 dashboard iframe 加载完成后询问
+                    const dashboardFrame = document.getElementById('frame-dashboard');
+                    if (dashboardFrame) {
+                        if (dashboardFrame.contentWindow && dashboardFrame.contentDocument && dashboardFrame.contentDocument.readyState === 'complete') {
+                            // iframe 已经加载完成，直接询问
+                            setTimeout(() => {
+                                dashboardFrame.contentWindow.postMessage({
+                                    type: 'requestPageReady',
+                                    page: 'dashboard'
+                                }, window.location.origin);
+                            }, 100);
+                        } else {
+                            // iframe 还在加载，监听 load 事件
+                            dashboardFrame.addEventListener('load', () => {
+                                setTimeout(() => {
+                                    dashboardFrame.contentWindow.postMessage({
+                                        type: 'requestPageReady',
+                                        page: 'dashboard'
+                                    }, window.location.origin);
+                                }, 100);
+                            }, { once: true });
+                        }
+                    }
                 }
 
                 // 初始化浏览器历史记录
                 window.history.replaceState({ page: initialPage }, '', `#${initialPage}`);
 
                 console.log('✅ SPA 控制器初始化完成，初始页面:', initialPage);
+            }
+
+            /**
+             * 显示骨架屏
+             */
+            showSkeleton() {
+                if (this.skeleton) {
+                    this.skeleton.classList.remove('hide');
+                    this.skeleton.classList.add('show');
+                    console.log('🎭 显示骨架屏');
+                }
+            }
+
+            /**
+             * 隐藏骨架屏
+             */
+            hideSkeleton() {
+                if (this.skeleton) {
+                    this.skeleton.classList.remove('show');
+                    this.skeleton.classList.add('hide');
+                    // 等待动画完成后完全隐藏
+                    setTimeout(() => {
+                        this.skeleton.classList.remove('hide');
+                    }, 300);
+                    console.log('🎭 隐藏骨架屏');
+                }
             }
 
             /**
@@ -207,6 +380,9 @@
 
                 console.log(`🔀 页面切换: ${this.currentPage} → ${page}`);
 
+                // 显示骨架屏
+                this.showSkeleton();
+
                 // 隐藏当前页面
                 const currentFrame = document.getElementById(`frame-${this.currentPage}`);
                 if (currentFrame) {
@@ -224,7 +400,8 @@
 
                         // 监听 iframe 加载完成
                         targetFrame.addEventListener('load', () => {
-                            console.log(`✅ iframe 加载完成: ${page}`);
+                            console.log(`✅ iframe HTML 加载完成: ${page}，等待页面初始化...`);
+
                             // 应用主题到新加载的 iframe
                             if (window.themeManager) {
                                 setTimeout(() => {
@@ -232,8 +409,24 @@
                                     console.log(`🎨 已应用主题到新加载的 iframe: ${page}`);
                                 }, 100);
                             }
+                            // 注意：不在这里隐藏骨架屏，等待 iframe 发送 pageReady 消息
                         }, { once: true });
                     }
+                } else if (targetFrame) {
+                    // 页面已加载过，主动询问是否就绪
+                    console.log(`📤 询问已加载页面是否就绪: ${page}`);
+                    setTimeout(() => {
+                        try {
+                            targetFrame.contentWindow.postMessage({
+                                type: 'requestPageReady',
+                                page: page
+                            }, window.location.origin);
+                        } catch (e) {
+                            console.error('❌ 发送消息失败:', e);
+                            // 如果发送失败，3秒后自动隐藏骨架屏
+                            setTimeout(() => this.hideSkeleton(), 3000);
+                        }
+                    }, 100);
                 }
 
                 // 显示目标页面

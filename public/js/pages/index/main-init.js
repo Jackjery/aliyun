@@ -71,6 +71,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('✅ 应用初始化完成！');
         console.log('💡 提示：点击"生成统计结果"按钮开始查询数据');
 
+        // 5. 通知父窗口页面已完全就绪
+        if (window.parent !== window) {
+            window.parent.postMessage({
+                type: 'pageReady',
+                page: 'dashboard'
+            }, window.location.origin);
+            console.log('📨 已通知父窗口：dashboard 页面完全就绪');
+        }
+
+        // 6. 监听父窗口的询问消息（用于页面切换回来时）
+        window.addEventListener('message', (event) => {
+            if (event.origin !== window.location.origin) return;
+
+            if (event.data && event.data.type === 'requestPageReady') {
+                console.log('📩 收到父窗口询问，回复页面就绪');
+                window.parent.postMessage({
+                    type: 'pageReady',
+                    page: 'dashboard'
+                }, window.location.origin);
+            }
+        });
+
     } catch (error) {
         console.error('❌ 应用初始化失败:', error);
 

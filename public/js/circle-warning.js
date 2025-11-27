@@ -667,6 +667,35 @@ class WarningApp {
 }
 
 // 初始化应用
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const app = new WarningApp();
+    // 等待 init() 完成（构造函数中会调用 this.init()）
+    // init() 包括 setupEventListeners、setDefaultPeriods 和 connectWebSocket
+    // 由于 init() 是异步的但没有返回，我们需要等待一小段时间确保初始化完成
+    // 更好的做法是等待 WebSocket 连接完成
+    await app.wsManager.connect().catch(err => {
+        console.warn('⚠️ WebSocket 连接失败，但页面可继续使用:', err);
+    });
+
+    // 通知父窗口页面已完全就绪
+    if (window.parent !== window) {
+        window.parent.postMessage({
+            type: 'pageReady',
+            page: 'warning'
+        }, window.location.origin);
+        console.log('📨 已通知父窗口：circle-warning 页面完全就绪');
+    }
+
+    // 监听父窗口的询问消息（用于页面切换回来时）
+    window.addEventListener('message', (event) => {
+        if (event.origin !== window.location.origin) return;
+
+        if (event.data && event.data.type === 'requestPageReady') {
+            console.log('📩 收到父窗口询问，回复页面就绪');
+            window.parent.postMessage({
+                type: 'pageReady',
+                page: 'warning'
+            }, window.location.origin);
+        }
+    });
 });
