@@ -906,6 +906,9 @@ class TrendAnalysisApp {
                     formatPeriodLabel(label, this.currentFilters.groupBy)
                 );
 
+                // 🔧 去除重复标签并合并数据（解决周标签重复问题）
+                chartData = deduplicateChartData(chartData);
+
                 // 销毁旧图表
                 if (this.charts.station) {
                     this.charts.station.destroy();
@@ -981,6 +984,9 @@ class TrendAnalysisApp {
                     formatPeriodLabel(label, this.currentFilters.groupBy)
                 );
 
+                // 🔧 去除重复标签并合并数据（解决周标签重复问题）
+                chartData = deduplicateChartData(chartData);
+
                 if (this.charts.customer) {
                     this.charts.customer.destroy();
                 }
@@ -1051,6 +1057,9 @@ class TrendAnalysisApp {
                 chartData.labels = chartData.labels.map(label =>
                     formatPeriodLabel(label, this.currentFilters.groupBy)
                 );
+
+                // 🔧 去除重复标签并合并数据（解决周标签重复问题）
+                chartData = deduplicateChartData(chartData);
 
                 if (this.charts.satellite) {
                     this.charts.satellite.destroy();
@@ -1123,6 +1132,9 @@ class TrendAnalysisApp {
                     formatPeriodLabel(label, this.currentFilters.groupBy)
                 );
 
+                // 🔧 去除重复标签并合并数据（解决周标签重复问题）
+                chartData = deduplicateChartData(chartData);
+
                 if (this.charts.taskType) {
                     this.charts.taskType.destroy();
                 }
@@ -1193,6 +1205,9 @@ class TrendAnalysisApp {
                 chartData.labels = chartData.labels.map(label =>
                     formatPeriodLabel(label, this.currentFilters.groupBy)
                 );
+
+                // 🔧 去除重复标签并合并数据（解决周标签重复问题）
+                chartData = deduplicateChartData(chartData);
 
                 if (this.charts.taskStatus) {
                     this.charts.taskStatus.destroy();

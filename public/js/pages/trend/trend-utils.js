@@ -52,11 +52,16 @@ function downloadFile(filename, content, mimeType = 'application/octet-stream') 
  * @returns {Array} - 完整的周期数组
  */
 function generateCompletePeriods(startDate, endDate, groupBy, existingPeriods = []) {
-    const periods = new Set(existingPeriods);
+    // 🔧 清理 existingPeriods 中的时间戳，统一为 YYYY-MM-DD 格式
+    const cleanedExisting = existingPeriods.map(p => {
+        if (typeof p === 'string' && (p.includes('T') || p.includes(' '))) {
+            return p.split(/[T ]/)[0];
+        }
+        return p;
+    });
+    const periods = new Set(cleanedExisting);
     const start = new Date(startDate + 'T00:00:00');
     const end = new Date(endDate + 'T00:00:00');
-
-    let current = new Date(start);
 
     // 🔧 读取周期规则配置（用于按周分组）
     let weekConfig = { startDay: 1, startTime: '00:00' }; // 默认周一0点
@@ -74,6 +79,30 @@ function generateCompletePeriods(startDate, endDate, groupBy, existingPeriods = 
         }
     }
 
+    // 🔧 调整起始日期到其所属周期的起始日（关键修复！）
+    let current = new Date(start);
+    if (groupBy === 'week') {
+        const startDay = weekConfig.startDay;
+        const [hours, minutes] = weekConfig.startTime.split(':').map(Number);
+
+        const currentDay = current.getDay();
+        let dayDiff = currentDay - startDay;
+        if (dayDiff < 0) {
+            dayDiff += 7;
+        }
+
+        const referenceStart = new Date(current);
+        referenceStart.setDate(current.getDate() - dayDiff);
+        referenceStart.setHours(hours || 0, minutes || 0, 0, 0);
+
+        // 调整 current 到其所属周期的起始日
+        if (current >= referenceStart) {
+            current = new Date(referenceStart);
+        } else {
+            current = new Date(referenceStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+        }
+    }
+
     while (current <= end) {
         let periodLabel = '';
 
@@ -82,30 +111,8 @@ function generateCompletePeriods(startDate, endDate, groupBy, existingPeriods = 
                 periodLabel = formatDate(current);
                 break;
             case 'week':
-                // 🔧 使用自定义周起始日（与 CycleRuleEngine 一致）
-                const startDay = weekConfig.startDay;
-                const [hours, minutes] = weekConfig.startTime.split(':').map(Number);
-
-                const fileDate = new Date(current);
-                const currentDay = fileDate.getDay();
-
-                // 计算距离本周起始日的天数差
-                let dayDiff = currentDay - startDay;
-                if (dayDiff < 0) {
-                    dayDiff += 7;
-                }
-
-                // 本周起始日的起始时间点
-                const referenceStart = new Date(fileDate);
-                referenceStart.setDate(fileDate.getDate() - dayDiff);
-                referenceStart.setHours(hours || 0, minutes || 0, 0, 0);
-
-                // 计算周期起始时间
-                const weekStart = fileDate >= referenceStart
-                    ? new Date(referenceStart)
-                    : new Date(referenceStart.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-                periodLabel = formatDate(weekStart);
+                // 直接使用 current（已经是周期起始日）
+                periodLabel = formatDate(current);
                 break;
             case 'month':
                 periodLabel = formatDate(new Date(current.getFullYear(), current.getMonth(), 1));
@@ -146,6 +153,54 @@ function formatDate(date) {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+}
+
+/**
+ * 去除重复标签并合并对应的数据
+ * @param {Object} chartData - {labels: [], datasets: []}
+ * @returns {Object} - 去重后的 {labels: [], datasets: []}
+ */
+function deduplicateChartData(chartData) {
+    if (!chartData || !chartData.labels || chartData.labels.length === 0) {
+        return chartData;
+    }
+
+    const { labels, datasets } = chartData;
+    const uniqueLabels = [];
+    const labelIndexMap = new Map(); // 记录每个唯一标签对应的新索引
+
+    // 找出唯一的标签及其第一次出现的位置
+    labels.forEach((label, index) => {
+        if (!labelIndexMap.has(label)) {
+            labelIndexMap.set(label, uniqueLabels.length);
+            uniqueLabels.push(label);
+        }
+    });
+
+    // 如果没有重复，直接返回原数据
+    if (uniqueLabels.length === labels.length) {
+        return chartData;
+    }
+
+    // 合并数据：将重复标签的数据求和
+    const newDatasets = datasets.map(dataset => {
+        const newData = new Array(uniqueLabels.length).fill(0);
+
+        labels.forEach((label, index) => {
+            const newIndex = labelIndexMap.get(label);
+            newData[newIndex] += (dataset.data[index] || 0);
+        });
+
+        return {
+            ...dataset,
+            data: newData
+        };
+    });
+
+    return {
+        labels: uniqueLabels,
+        datasets: newDatasets
+    };
 }
 
 /**
@@ -214,9 +269,14 @@ function convertToChartData(records, dimensionField, valueField = 'record_count'
     // 构建数据集（带清爽透明样式）
     const datasets = dimensions.map((dimension, index) => {
         const data = periods.map(period => {
-            const record = records.find(r =>
-                r.period === period && r[dimensionField] === dimension
-            );
+            // 🔧 清理 r.period 的时间戳后再比较
+            const record = records.find(r => {
+                let cleanPeriod = r.period;
+                if (typeof cleanPeriod === 'string' && (cleanPeriod.includes('T') || cleanPeriod.includes(' '))) {
+                    cleanPeriod = cleanPeriod.split(/[T ]/)[0];
+                }
+                return cleanPeriod === period && r[dimensionField] === dimension;
+            });
             // 强制转换为数字，确保0值不被跳过
             const rawValue = record ? record[valueField] : 0;
             const numValue = Number(rawValue);
