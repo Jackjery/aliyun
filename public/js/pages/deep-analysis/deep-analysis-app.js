@@ -101,12 +101,47 @@ class DeepAnalysisApp {
      * 初始化 WebSocket 连接
      */
     async initWebSocket() {
-        if (typeof WebSocketManager !== 'undefined') {
-            this.wsManager = WebSocketManager.getInstance();
-            await this.wsManager.connect();
+        // 等待 WebSocketManager 初始化
+        await this.waitForWebSocket();
+
+        if (window.wsManager) {
+            this.wsManager = window.wsManager;
             console.log('✅ WebSocket 已连接');
         } else {
-            console.warn('⚠️ WebSocketManager 未定义，将使用 HTTP 请求');
+            console.error('❌ WebSocketManager 未找到');
+            throw new Error('WebSocket连接失败');
+        }
+    }
+
+    /**
+     * 等待 WebSocket 管理器初始化
+     */
+    async waitForWebSocket(maxWait = 5000) {
+        const startTime = Date.now();
+        while (!window.wsManager && (Date.now() - startTime < maxWait)) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+        if (!window.wsManager) {
+            throw new Error('WebSocket管理器初始化超时');
+        }
+
+        // 等待连接建立
+        const wsManager = window.wsManager;
+        if (!wsManager.isConnected) {
+            await new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    reject(new Error('WebSocket连接超时'));
+                }, maxWait);
+
+                const checkConnection = setInterval(() => {
+                    if (wsManager.isConnected) {
+                        clearInterval(checkConnection);
+                        clearTimeout(timeout);
+                        resolve();
+                    }
+                }, 100);
+            });
         }
     }
 
@@ -187,18 +222,19 @@ class DeepAnalysisApp {
         try {
             this.showLoading('正在加载客户列表...');
 
-            // 通过 WebSocket 或 HTTP 获取客户列表
-            const response = await fetch(`${API_BASE_URL}/api/customers`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
+            // 通过 WebSocket 获取筛选选项
+            const result = await this.wsManager.queryStats('filter_options', {
+                dimension: 'customer'
             });
 
-            if (!response.ok) throw new Error('获取客户列表失败');
+            if (!result || !result.options) {
+                throw new Error('获取客户列表失败');
+            }
 
-            const customers = await response.json();
-            const customerOptions = customers.map(c => ({ value: c, label: c }));
+            const customerOptions = result.options.map(c => ({
+                value: c,
+                label: c
+            }));
 
             // 更新下拉框选项
             if (this.filters.customer) {
@@ -206,7 +242,7 @@ class DeepAnalysisApp {
             }
 
             this.hideLoading();
-            console.log(`✅ 已加载 ${customers.length} 个客户`);
+            console.log(`✅ 已加载 ${customerOptions.length} 个客户`);
         } catch (error) {
             console.error('❌ 加载客户选项失败:', error);
             this.showError('加载客户列表失败: ' + error.message);
@@ -256,99 +292,50 @@ class DeepAnalysisApp {
      * 获取数据
      */
     async fetchData() {
-        const params = new URLSearchParams({
-            start_date: this.currentFilters.startDate,
-            end_date: this.currentFilters.endDate,
-            group_by: this.currentFilters.groupBy
+        // 使用 WebSocket 查询客户维度趋势数据
+        const result = await this.wsManager.queryStats('customer_dimension_trend', {
+            startDate: this.currentFilters.startDate,
+            endDate: this.currentFilters.endDate,
+            groupBy: this.currentFilters.groupBy,
+            customers: this.currentFilters.customers.length > 0 ? this.currentFilters.customers : undefined
         });
 
-        if (this.currentFilters.customers.length > 0) {
-            params.append('customers', this.currentFilters.customers.join(','));
+        if (!result || !result.periods || !result.customerData) {
+            throw new Error('获取数据失败');
         }
 
-        const response = await fetch(`${API_BASE_URL}/api/trend-data?${params.toString()}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+        // 转换数据格式
+        this.analysisData.periods = result.periods;
+        this.analysisData.customerData = result.customerData;
+
+        // 计算总趋势（所有客户的计划ID数总和）
+        this.analysisData.totalTrend = result.periods.map((_, index) => {
+            return Object.values(result.customerData).reduce((sum, values) => {
+                return sum + (values[index] || 0);
+            }, 0);
         });
 
-        if (!response.ok) throw new Error('获取数据失败');
-
-        this.analysisData.rawData = await response.json();
-        console.log(`✅ 获取到 ${this.analysisData.rawData.length} 条记录`);
+        console.log(`✅ 获取到 ${result.periods.length} 个周期的数据`);
     }
 
     /**
      * 处理和分析数据
      */
     processData() {
-        const rawData = this.analysisData.rawData;
-
-        // 按周期分组
-        const grouped = groupDataByPeriod(rawData, this.currentFilters.groupBy);
-        this.analysisData.periods = Object.keys(grouped).sort();
-
-        // 计算每个周期的总计划ID数
-        const totalTrend = this.analysisData.periods.map(period => {
-            const records = grouped[period];
-            // 使用 Set 去重计划ID
-            const uniquePlanIds = new Set(records.map(r => r.plan_id));
-            return uniquePlanIds.size;
-        });
-
-        this.analysisData.totalTrend = totalTrend;
+        // 数据已在fetchData中获取并处理，这里只需要计算移动平均和分析
 
         // 计算移动平均
         this.analysisData.movingAverage = calculateMovingAverage(
-            totalTrend,
+            this.analysisData.totalTrend,
             this.currentFilters.movingAvgWindow
         );
 
         // 检测趋势下滑
         this.analysisData.declineAnalysis = detectTrendDecline(this.analysisData.movingAverage);
 
-        // 按客户分组计算贡献度
-        const customerData = {};
-        this.analysisData.periods.forEach(period => {
-            const records = grouped[period];
-
-            // 按客户统计计划ID数
-            const customerPlanIds = {};
-            records.forEach(record => {
-                const customer = record.customer_name || '未知客户';
-                if (!customerPlanIds[customer]) {
-                    customerPlanIds[customer] = new Set();
-                }
-                customerPlanIds[customer].add(record.plan_id);
-            });
-
-            // 记录每个客户的计划ID数
-            Object.entries(customerPlanIds).forEach(([customer, planIds]) => {
-                if (!customerData[customer]) {
-                    customerData[customer] = [];
-                }
-                customerData[customer].push(planIds.size);
-            });
-        });
-
-        // 填充缺失数据（某个客户在某个周期没有数据，填0）
-        const allCustomers = Object.keys(customerData);
-        allCustomers.forEach(customer => {
-            if (customerData[customer].length < this.analysisData.periods.length) {
-                const filledData = new Array(this.analysisData.periods.length).fill(0);
-                customerData[customer].forEach((val, idx) => {
-                    filledData[idx] = val;
-                });
-                customerData[customer] = filledData;
-            }
-        });
-
-        this.analysisData.customerData = customerData;
-
         // 分析客户贡献度
         this.analysisData.contributionAnalysis = analyzeCustomerContribution(
-            customerData,
+            this.analysisData.customerData,
             this.analysisData.periods
         );
 

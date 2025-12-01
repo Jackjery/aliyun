@@ -275,10 +275,51 @@
     </main>
 
     <!-- JavaScript -->
-    <script src="../public/js/common/websocket-manager.js" defer></script>
-    <script src="../public/js/common/multi-select-dropdown.js" defer></script>
-    <script src="../public/js/common/theme-manager.js" defer></script>
-    <script src="../public/js/pages/deep-analysis/deep-analysis-utils.js" defer></script>
-    <script src="../public/js/pages/deep-analysis/deep-analysis-app.js" defer></script>
+    <script src="../public/js/common/websocket-manager.js"></script>
+    <script src="../public/js/common/multi-select-dropdown.js"></script>
+    <script src="../public/js/common/theme-manager.js"></script>
+    <script src="../public/js/pages/deep-analysis/deep-analysis-utils.js"></script>
+    <script src="../public/js/pages/deep-analysis/deep-analysis-app.js"></script>
+    <!-- 调试助手（开发环境）-->
+    <script src="../public/js/pages/deep-analysis/debug-helper.js"></script>
+
+    <!-- iframe 页面就绪通知 -->
+    <script>
+        // 监听来自父窗口的消息
+        window.addEventListener('message', (event) => {
+            // 安全检查
+            if (event.origin !== window.location.origin) return;
+
+            // 响应父窗口的页面就绪请求
+            if (event.data && event.data.type === 'requestPageReady') {
+                window.parent.postMessage({
+                    type: 'pageReady',
+                    page: 'deep-analysis'
+                }, window.location.origin);
+            }
+        });
+
+        // 页面加载完成后主动通知父窗口
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                window.parent.postMessage({
+                    type: 'pageReady',
+                    page: 'deep-analysis'
+                }, window.location.origin);
+            }, 500);
+        });
+
+        // DOMContentLoaded 时也通知一次
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                setTimeout(() => {
+                    window.parent.postMessage({
+                        type: 'pageReady',
+                        page: 'deep-analysis'
+                    }, window.location.origin);
+                }, 200);
+            });
+        }
+    </script>
 </body>
 </html>
