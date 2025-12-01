@@ -1,0 +1,604 @@
+/* ========== Deep Analysis 页面专用样式 ========== */
+
+/* ========== 固定筛选条件区域 ========== */
+.sticky-filter-section {
+    position: sticky;
+    top: 70px; /* 避开导航栏 */
+    z-index: 100;
+    background: rgba(var(--bg-card), 0.98);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1), 0 1px 4px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(var(--border-color), 0.5);
+    transition: box-shadow 0.2s ease;
+}
+
+.sticky-filter-section:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.sticky-filter-section.is-stuck {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-bottom: 2px solid rgba(var(--color-primary), 0.2);
+}
+
+.sticky-filter-section h3 {
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: rgb(var(--text-primary));
+}
+
+.sticky-filter-section .grid {
+    gap: 10px;
+}
+
+.sticky-filter-section .grid.mb-4 {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+}
+
+.sticky-filter-section label {
+    font-size: 0.8125rem;
+    margin-bottom: 4px;
+}
+
+.sticky-filter-section button {
+    padding: 5px 10px;
+    font-size: 0.8125rem;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sticky-filter-section .filter-select {
+    min-height: 32px;
+    padding: 4px 8px;
+    font-size: 0.8125rem;
+}
+
+.sticky-filter-section input[type="date"] {
+    height: 32px;
+    display: flex;
+    align-items: center;
+}
+
+.sticky-filter-section select {
+    height: 32px;
+}
+
+/* ========== 筛选框容器 ========== */
+.dropdown-container {
+    position: relative;
+    width: 100%;
+}
+
+.filter-select {
+    width: 100%;
+    min-height: 38px;
+    padding: 6px 10px;
+    border: 1px solid rgb(var(--border-color));
+    border-radius: 6px;
+    background: rgba(var(--bg-card), 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.filter-select:hover {
+    border-color: rgb(var(--color-primary));
+}
+
+.filter-select.dropdown-open {
+    border-color: rgb(var(--color-primary));
+}
+
+.filter-input-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    overflow: hidden;
+    min-width: 0;
+    position: relative;
+}
+
+.filter-input-area input {
+    flex: 1;
+    min-width: 50px;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 13px;
+    color: rgb(var(--text-primary));
+    padding: 0;
+    line-height: 1;
+}
+
+.filter-input-area input::placeholder {
+    color: rgb(var(--text-tertiary));
+}
+
+.selected-tags-inline {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    max-width: 70%;
+}
+
+.selected-tags-inline:not(:empty) + input {
+    flex: 0 0 auto;
+    width: 50px;
+}
+
+.selected-tag-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 6px;
+    background: rgba(var(--color-primary), 0.1);
+    color: rgb(var(--color-primary));
+    border-radius: 10px;
+    font-size: 12px;
+    line-height: 1;
+    white-space: nowrap;
+    max-width: 90px;
+    flex-shrink: 0;
+}
+
+.selected-tag-inline .tag-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.selected-tag-inline .tag-remove {
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    flex-shrink: 0;
+    margin-left: 2px;
+}
+
+.selected-tag-inline .tag-remove:hover {
+    color: rgb(var(--color-danger, 239, 68, 68));
+}
+
+.more-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 5px;
+    background: rgba(var(--color-primary), 0.15);
+    color: rgb(var(--color-primary));
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.dropdown-arrow {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    color: rgb(var(--text-secondary));
+    transition: transform 0.2s;
+}
+
+.filter-select.dropdown-open .dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.dropdown-content {
+    position: absolute;
+    z-index: 1000;
+    width: 100%;
+    min-width: 200px;
+    margin-top: 4px;
+    background: rgba(var(--bg-base), 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgb(var(--border-color));
+    border-radius: 8px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    max-height: 320px;
+    display: flex;
+    flex-direction: column;
+}
+
+.dropdown-content.hidden {
+    display: none !important;
+}
+
+.dropdown-options-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px;
+}
+
+.dropdown-option-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    font-size: 13px;
+    line-height: 1;
+    color: rgb(var(--text-primary));
+}
+
+.dropdown-option-item:hover {
+    background: rgba(var(--color-primary), 0.06);
+}
+
+.dropdown-option-item.selected {
+    background: rgba(var(--color-primary), 0.12);
+}
+
+.dropdown-option-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    cursor: pointer;
+    flex-shrink: 0;
+    accent-color: rgb(var(--color-primary));
+}
+
+.dropdown-footer {
+    border-top: 1px solid rgb(var(--border-color));
+    padding: 6px 8px;
+    background: rgba(var(--bg-base), 0.5);
+}
+
+.select-all-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+    color: rgb(var(--text-primary));
+    transition: background 0.15s ease;
+}
+
+.select-all-item:hover {
+    background: rgba(var(--color-primary), 0.06);
+}
+
+.select-all-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: rgb(var(--color-primary));
+}
+
+select.filter-select {
+    display: block;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+}
+
+button, label {
+    line-height: 1;
+}
+
+button span, label span {
+    line-height: 1.2;
+    display: inline-flex;
+    align-items: center;
+}
+
+.icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+}
+
+button.chart-download-btn,
+button[id^="reset"],
+button[id^="export"] {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+}
+
+label input[type="checkbox"] {
+    vertical-align: middle;
+}
+
+label:has(input[type="checkbox"]) {
+    padding-left: 13px !important;
+    padding-right: 10px !important;
+}
+
+/* 自定义图例容器样式 */
+.chart-legend-container {
+    width: 140px;
+    min-width: 140px;
+    max-height: 100%;
+    overflow-y: auto;
+    padding: 8px 12px;
+    margin-left: 12px;
+    border-left: 1px solid rgb(var(--border-color));
+    scrollbar-width: thin;
+    scrollbar-color: rgba(var(--color-primary), 0.5) rgba(var(--border-color), 0.3);
+}
+.chart-legend-container::-webkit-scrollbar {
+    width: 6px;
+}
+.chart-legend-container::-webkit-scrollbar-track {
+    background: rgba(var(--border-color), 0.3);
+    border-radius: 3px;
+}
+.chart-legend-container::-webkit-scrollbar-thumb {
+    background: rgba(var(--color-primary), 0.5);
+    border-radius: 3px;
+}
+.chart-legend-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(var(--color-primary), 0.7);
+}
+.chart-legend-item {
+    display: flex;
+    align-items: center;
+    padding: 4px 0;
+    cursor: pointer;
+    font-size: 11px;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.chart-legend-item:hover {
+    opacity: 0.8;
+}
+.chart-legend-item.hidden {
+    opacity: 0.4;
+    text-decoration: line-through;
+}
+.chart-legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+.chart-legend-label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ========== 图表加载状态 ========== */
+.chart-loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(var(--bg-card), 0.95);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    border-radius: 8px;
+}
+
+.chart-loading-overlay.hidden {
+    display: none !important;
+}
+
+.chart-loading-content {
+    text-align: center;
+}
+
+.chart-loading-text {
+    font-size: 14px;
+    color: rgb(var(--text-secondary));
+}
+
+/* ========== 深度分析专用样式 ========== */
+
+/* 下滑分析结果卡片 */
+.decline-analysis-card {
+    padding: 16px;
+    border: 1px solid rgb(var(--border-color));
+    border-radius: 8px;
+    background: rgba(var(--bg-base), 0.3);
+    margin-bottom: 12px;
+}
+
+.decline-analysis-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.decline-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.decline-status.declining {
+    background: rgba(239, 68, 68, 0.1);
+    color: rgb(239, 68, 68);
+}
+
+.decline-status.stable {
+    background: rgba(34, 197, 94, 0.1);
+    color: rgb(34, 197, 94);
+}
+
+.decline-status.growing {
+    background: rgba(59, 130, 246, 0.1);
+    color: rgb(59, 130, 246);
+}
+
+.decline-info {
+    color: rgb(var(--text-secondary));
+    font-size: 13px;
+}
+
+/* 主要贡献客户列表 */
+.contributor-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.contributor-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border-radius: 6px;
+    background: rgba(var(--bg-card), 0.6);
+    transition: all 0.2s;
+}
+
+.contributor-item:hover {
+    background: rgba(var(--bg-card), 0.9);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.contributor-rank {
+    font-size: 16px;
+    font-weight: 700;
+    color: rgb(var(--text-tertiary));
+    min-width: 24px;
+}
+
+.contributor-name {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: rgb(var(--text-primary));
+}
+
+.contributor-trend {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+}
+
+.trend-negative {
+    color: rgb(239, 68, 68);
+}
+
+.trend-positive {
+    color: rgb(34, 197, 94);
+}
+
+.trend-icon {
+    font-size: 16px;
+}
+
+.contributor-change {
+    font-weight: 600;
+}
+
+/* 贡献度表格样式 */
+#contributionTable {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+#contributionTable thead tr {
+    background: rgba(var(--color-primary), 0.05);
+}
+
+#contributionTable th {
+    font-weight: 600;
+    color: rgb(var(--text-primary));
+    border-bottom: 2px solid rgb(var(--border-color));
+}
+
+#contributionTable tbody tr {
+    transition: background 0.2s;
+    border-bottom: 1px solid rgba(var(--border-color), 0.5);
+}
+
+#contributionTable tbody tr:hover {
+    background: rgba(var(--color-primary), 0.03);
+}
+
+#contributionTable td {
+    padding: 10px 12px;
+    font-size: 13px;
+    color: rgb(var(--text-secondary));
+}
+
+#contributionTable tbody tr td:first-child {
+    font-weight: 500;
+    color: rgb(var(--text-primary));
+}
+
+/* 趋势标签 */
+.trend-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.trend-badge.up {
+    background: rgba(34, 197, 94, 0.1);
+    color: rgb(34, 197, 94);
+}
+
+.trend-badge.down {
+    background: rgba(239, 68, 68, 0.1);
+    color: rgb(239, 68, 68);
+}
+
+.trend-badge.flat {
+    background: rgba(156, 163, 175, 0.1);
+    color: rgb(156, 163, 175);
+}
+
+/* 空数据提示 */
+.empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: rgb(var(--text-tertiary));
+}
+
+.empty-state-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+}
+
+.empty-state-text {
+    font-size: 14px;
+}

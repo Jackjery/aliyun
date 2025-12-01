@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>深度分析 - 卫星任务数据分析平台</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+
+    <!-- 🚀 性能优化：预解析API和WebSocket服务器，减少首次请求延迟 -->
+    <link rel="dns-prefetch" href="https://records-bsjjdmpsel.cn-hangzhou.fcapp.run">
+    <link rel="preconnect" href="https://records-bsjjdmpsel.cn-hangzhou.fcapp.run">
+    <link rel="dns-prefetch" href="https://ws.nxjyx.com.cn">
+    <link rel="preconnect" href="https://ws.nxjyx.com.cn">
+
+    <!-- 🎨 主题系统 - 支持深色/浅色模式 + 多彩主题切换 -->
+    <link rel="stylesheet" href="../public/css/themes.css">
+
+    <!-- 本地资源 - 极简SVG方案 -->
+    <!-- 本地Tailwind CSS -->
+    <link rel="stylesheet" href="../public/css/output.css">
+    <!-- 本地图标系统 -->
+    <link rel="stylesheet" href="../public/css/icons.css">
+    <!-- Deep Analysis 页面专用样式 -->
+    <link rel="stylesheet" href="../public/css/deep-analysis.css">
+
+    <!-- iframe 辅助脚本 - 检测并隐藏导航栏 -->
+    <script src="../public/js/common/iframe-helper.js"></script>
+
+    <!-- 配置文件 - 必须最先加载 -->
+    <script src="../public/js/common/config.js"></script>
+
+    <!-- 状态管理器 - IndexedDB -->
+    <script src="../public/js/common/state-manager.js"></script>
+
+    <!-- 图表库 - 移除defer确保顺序加载 -->
+    <script src="../public/lib/chart.min.js"></script>
+    <script src="../public/lib/chartjs-plugin-datalabels.min.js"></script>
+</head>
+<body style="background-color: rgb(var(--bg-primary)); min-height: 100vh; color: rgb(var(--text-primary)); transition: all 0.3s;">
+    <!-- SVG图标库 - 异步加载不阻塞渲染 -->
+    <div style="display:none" id="svg-sprite-container"></div>
+
+    <main class="container mx-auto px-4 pt-4 pb-6">
+        <!-- 页面标题 -->
+        <div class="mb-6">
+            <h2 class="text-2xl font-bold text-primary mb-2">计划ID数深度分析</h2>
+            <p class="text-sm text-gray-600">基于移动平均算法，识别导致总计划ID数下滑的关键客户</p>
+        </div>
+
+        <!-- 筛选条件区域 - 固定顶部 -->
+        <section id="filterSection" class="sticky-filter-section">
+            <h3 class="text-lg font-semibold mb-4">筛选条件</h3>
+
+            <!-- 时间范围和统计周期设置 -->
+            <div class="grid grid-cols-5 gap-4 mb-4 pb-4 border-b border-gray-100">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">统计开始日期</label>
+                    <div style="position: relative; display: flex; align-items: center;">
+                        <input type="date" id="startDate" class="filter-select" style="flex: 1;">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">统计结束日期</label>
+                    <div style="position: relative; display: flex; align-items: center;">
+                        <input type="date" id="endDate" class="filter-select" style="flex: 1;">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">统计周期</label>
+                    <select id="groupBy" class="filter-select">
+                        <option value="day" selected>按日</option>
+                        <option value="week">按周</option>
+                        <option value="month">按月</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">移动平均窗口</label>
+                    <select id="movingAvgWindow" class="filter-select">
+                        <option value="3">3期</option>
+                        <option value="5" selected>5期</option>
+                        <option value="7">7期</option>
+                        <option value="10">10期</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <button id="applyFilters" class="w-full px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors">
+                        开始分析
+                    </button>
+                </div>
+            </div>
+
+            <!-- 客户筛选 -->
+            <div class="grid grid-cols-1">
+                <div class="dropdown-container">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        选择客户 <span class="text-xs text-gray-500">(可多选，留空则分析全部)</span>
+                    </label>
+                    <div class="filter-select cursor-pointer" id="customerDropdown">
+                        <div class="filter-input-area">
+                            <div class="selected-tags-inline" id="customerTags"></div>
+                            <input type="text" placeholder="搜索客户..." id="customerSearch">
+                        </div>
+                        <svg class="dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </div>
+                    <div class="dropdown-content hidden" id="customerOptions">
+                        <div class="dropdown-options-list"></div>
+                        <div class="dropdown-footer">
+                            <div class="select-all-item" id="selectAllCustomers">
+                                <input type="checkbox"><span>全选</span>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="customerValue" value="">
+                </div>
+            </div>
+        </section>
+
+        <!-- 加载状态 -->
+        <div id="loadingAlert" class="mb-4 p-2.5 bg-primary/10 text-primary rounded-lg flex items-center hidden">
+            <svg class="icon icon-spin mr-2"><use href="#icon-spinner"/></svg>
+            <span id="loadingMessage">正在加载数据...</span>
+        </div>
+
+        <!-- 错误提示 -->
+        <div id="errorAlert" class="bg-danger/10 text-danger p-3 rounded-lg mb-4 hidden">
+            <svg class="icon mr-2"><use href="#icon-exclamation-circle"/></svg>
+            <span id="errorMessage">操作失败</span>
+        </div>
+
+        <!-- 分析结果展示区域 -->
+        <section id="resultsSection" class="space-y-4 hidden">
+            <!-- 总体趋势图 -->
+            <div class="bg-card rounded-lg p-6 card-shadow">
+                <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
+                    <span>总计划ID数趋势与移动平均线</span>
+                    <div class="flex items-center gap-2">
+                        <label class="flex items-center justify-center px-2.5 bg-secondary/10 text-secondary rounded cursor-pointer hover:bg-secondary/20 transition whitespace-nowrap" style="height: 32px;">
+                            <input type="checkbox" id="showTotalLabels" class="mr-1.5 w-4 h-4">
+                            <span class="text-sm font-medium">显示数据标签</span>
+                        </label>
+                        <button class="chart-download-btn flex items-center justify-center px-2.5 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition whitespace-nowrap" style="height: 32px;"
+                                data-chart="totalTrendChart" data-type="image">
+                            <svg class="icon"><use href="#icon-download"/></svg>
+                            <span>下载图表</span>
+                        </button>
+                        <button class="chart-download-btn flex items-center justify-center px-2.5 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition whitespace-nowrap" style="height: 32px;"
+                                data-chart="totalTrendChart" data-type="csv">
+                            <svg class="icon"><use href="#icon-table"/></svg>
+                            <span>下载数据</span>
+                        </button>
+                    </div>
+                </h3>
+
+                <div class="h-80 border border-default rounded-lg p-4 relative">
+                    <canvas id="totalTrendChart"></canvas>
+                    <div class="absolute inset-0 flex items-center justify-center text-gray-500 hidden" id="totalTrendChartEmpty">
+                        <div class="text-center">
+                            <svg class="icon icon-2xl mb-2"><use href="#icon-line-chart"/></svg>
+                            <p>没有符合条件的数据</p>
+                        </div>
+                    </div>
+                    <div class="chart-loading-overlay hidden" id="totalTrendChartLoading">
+                        <div class="chart-loading-content">
+                            <div class="chart-loading-text">正在渲染图表...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 下滑分析结果 -->
+            <div class="bg-card rounded-lg p-6 card-shadow">
+                <h3 class="text-lg font-semibold mb-4">趋势下滑分析结果</h3>
+                <div id="declineAnalysisResult">
+                    <!-- 动态生成分析结果 -->
+                </div>
+            </div>
+
+            <!-- 客户贡献度堆叠图 -->
+            <div class="bg-card rounded-lg p-6 card-shadow">
+                <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
+                    <span>客户各称趋势分析（堆叠图）</span>
+                    <div class="flex items-center gap-2">
+                        <div class="dropdown-container relative" style="width: 200px;">
+                            <div class="filter-select cursor-pointer flex items-center" id="customerChartDropdown" style="font-size: 13px; height: 32px; padding: 0 10px; min-height: auto;">
+                                <div class="filter-input-area">
+                                    <div class="selected-tags-inline" id="customerChartTags"></div>
+                                    <input type="text" placeholder="请选择..." id="customerChartSearch">
+                                </div>
+                                <svg class="dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </div>
+                            <div class="dropdown-content hidden" id="customerChartOptions">
+                                <div class="dropdown-options-list"></div>
+                                <div class="dropdown-footer">
+                                    <div class="select-all-item" id="selectAllCustomerChart">
+                                        <input type="checkbox"><span>全选</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="hidden" id="customerChartValue" value="">
+                        </div>
+
+                        <button id="resetCustomerChart" class="flex items-center justify-center px-2.5 text-sm bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition whitespace-nowrap" style="height: 32px;" title="重置图表筛选">
+                            <svg class="icon"><use href="#icon-refresh"/></svg>
+                            <span>重置筛选</span>
+                        </button>
+
+                        <label class="flex items-center justify-center px-2.5 bg-secondary/10 text-secondary rounded cursor-pointer hover:bg-secondary/20 transition whitespace-nowrap" style="height: 32px;">
+                            <input type="checkbox" id="showCustomerLabels" class="mr-1.5 w-4 h-4">
+                            <span class="text-sm font-medium">显示数据标签</span>
+                        </label>
+                        <button class="chart-download-btn flex items-center justify-center px-2.5 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition whitespace-nowrap" style="height: 32px;"
+                                data-chart="customerStackChart" data-type="image">
+                            <svg class="icon"><use href="#icon-download"/></svg>
+                            <span>下载图表</span>
+                        </button>
+                        <button class="chart-download-btn flex items-center justify-center px-2.5 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition whitespace-nowrap" style="height: 32px;"
+                                data-chart="customerStackChart" data-type="csv">
+                            <svg class="icon"><use href="#icon-table"/></svg>
+                            <span>下载数据</span>
+                        </button>
+                    </div>
+                </h3>
+
+                <div class="h-96 border border-default rounded-lg p-4 relative flex">
+                    <div class="flex-1 relative min-w-0">
+                        <canvas id="customerStackChart"></canvas>
+                        <div class="absolute inset-0 flex items-center justify-center text-gray-500 hidden" id="customerStackChartEmpty">
+                            <div class="text-center">
+                                <svg class="icon icon-2xl mb-2"><use href="#icon-line-chart"/></svg>
+                                <p>没有符合条件的数据</p>
+                            </div>
+                        </div>
+                        <div class="chart-loading-overlay hidden" id="customerStackChartLoading">
+                            <div class="chart-loading-content">
+                                <div class="chart-loading-text">正在渲染图表...</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="customerStackChartLegend" class="chart-legend-container"></div>
+                </div>
+            </div>
+
+            <!-- 客户贡献变化详细表格 -->
+            <div class="bg-card rounded-lg p-6 card-shadow">
+                <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
+                    <span>客户贡献度变化详情</span>
+                    <button id="exportTableBtn" class="flex items-center justify-center px-3 py-2 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition">
+                        <svg class="icon mr-1"><use href="#icon-download"/></svg>
+                        <span>导出Excel</span>
+                    </button>
+                </h3>
+                <div class="overflow-x-auto">
+                    <table id="contributionTable" class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-200">
+                                <th class="text-left py-2 px-3">客户名称</th>
+                                <th class="text-right py-2 px-3">平均贡献度</th>
+                                <th class="text-right py-2 px-3">趋势变化</th>
+                                <th class="text-right py-2 px-3">最大值</th>
+                                <th class="text-right py-2 px-3">最小值</th>
+                                <th class="text-right py-2 px-3">波动系数</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contributionTableBody">
+                            <!-- 动态生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- JavaScript -->
+    <script src="../public/js/common/websocket-manager.js" defer></script>
+    <script src="../public/js/common/multi-select-dropdown.js" defer></script>
+    <script src="../public/js/common/theme-manager.js" defer></script>
+    <script src="../public/js/pages/deep-analysis/deep-analysis-utils.js" defer></script>
+    <script src="../public/js/pages/deep-analysis/deep-analysis-app.js" defer></script>
+</body>
+</html>
