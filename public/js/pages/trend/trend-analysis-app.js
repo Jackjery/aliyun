@@ -895,7 +895,7 @@ class TrendAnalysisApp {
             });
 
             if (result && result.records && result.records.length > 0) {
-                const chartData = convertToChartData(result.records, 'station_name', 'record_count', {
+                let chartData = convertToChartData(result.records, 'station_name', 'record_count', {
                     startDate: this.currentFilters.startDate,
                     endDate: this.currentFilters.endDate,
                     groupBy: this.currentFilters.groupBy
@@ -974,7 +974,7 @@ class TrendAnalysisApp {
             });
 
             if (result && result.records && result.records.length > 0) {
-                const chartData = convertToChartData(result.records, 'customer_name', 'record_count', {
+                let chartData = convertToChartData(result.records, 'customer_name', 'record_count', {
                     startDate: this.currentFilters.startDate,
                     endDate: this.currentFilters.endDate,
                     groupBy: this.currentFilters.groupBy
@@ -1048,7 +1048,7 @@ class TrendAnalysisApp {
             });
 
             if (result && result.records && result.records.length > 0) {
-                const chartData = convertToChartData(result.records, 'satellite_name', 'record_count', {
+                let chartData = convertToChartData(result.records, 'satellite_name', 'record_count', {
                     startDate: this.currentFilters.startDate,
                     endDate: this.currentFilters.endDate,
                     groupBy: this.currentFilters.groupBy
@@ -1122,7 +1122,7 @@ class TrendAnalysisApp {
             });
 
             if (result && result.records && result.records.length > 0) {
-                const chartData = convertToChartData(result.records, 'task_type', 'record_count', {
+                let chartData = convertToChartData(result.records, 'task_type', 'record_count', {
                     startDate: this.currentFilters.startDate,
                     endDate: this.currentFilters.endDate,
                     groupBy: this.currentFilters.groupBy
@@ -1196,7 +1196,7 @@ class TrendAnalysisApp {
             });
 
             if (result && result.records && result.records.length > 0) {
-                const chartData = convertToChartData(result.records, 'task_status', 'record_count', {
+                let chartData = convertToChartData(result.records, 'task_status', 'record_count', {
                     startDate: this.currentFilters.startDate,
                     endDate: this.currentFilters.endDate,
                     groupBy: this.currentFilters.groupBy
