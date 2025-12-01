@@ -350,47 +350,15 @@ class SatelliteApp {
     }
 
     /**
-     * 获取周数（使用自定义周起始日配置，与 CycleRuleEngine 一致）
-     * 确保前端显示的周数与后端分组逻辑保持一致
+     * 获取周数（基于周期起始日期直接计算周数）
+     * 注意：输入的 date 参数应该是周期起始日期，不需要再次计算周期
      */
     getWeekNumberWithCustomStart(date) {
-        const weekConfig = this.groupingConfig.week;
-        const startDay = weekConfig.startDay; // 0=周日, 1=周一...6=周六
-        const [hours, minutes] = weekConfig.startTime.split(':').map(Number);
-
-        // 创建文件时间对象
-        const fileDate = new Date(
-            date.getFullYear(),
-            date.getMonth(),
-            date.getDate(),
-            date.getHours(),
-            date.getMinutes(),
-            date.getSeconds()
-        );
-
-        // 获取当前日期是星期几
-        const currentDay = fileDate.getDay();
-
-        // 计算距离本周起始日的天数差
-        let dayDiff = currentDay - startDay;
-        if (dayDiff < 0) {
-            dayDiff += 7;
-        }
-
-        // 创建参考日期：本周起始日的起始时间点
-        const referenceStart = new Date(fileDate);
-        referenceStart.setDate(fileDate.getDate() - dayDiff);
-        referenceStart.setHours(hours || 0, minutes || 0, 0, 0);
-
-        // 计算周期起始时间
-        const cycleStart = fileDate >= referenceStart
-            ? new Date(referenceStart)
-            : new Date(referenceStart.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-        // 计算年份和周数（使用与 CycleRuleEngine 相同的算法）
-        const year = cycleStart.getFullYear();
+        // 🔧 直接基于输入的日期（周期起始日期）计算周数
+        // 不再重新计算"这个日期属于哪个周期"，因为输入已经是周期起始日期
+        const year = date.getFullYear();
         const firstDayOfYear = new Date(year, 0, 1);
-        const pastDaysOfYear = (cycleStart - firstDayOfYear) / 86400000;
+        const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
         const week = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
 
         return week;
