@@ -60,14 +60,21 @@ class DeepAnalysisApp {
         // 初始化 WebSocket
         await this.initWebSocket();
 
+        // 更新连接状态显示
+        this.updateConnectionStatus();
+
         // 初始化筛选器
         this.initFilters();
 
         // 初始化事件监听
         this.initEventListeners();
 
-        // 加载客户选项
-        await this.loadCustomerOptions();
+        // 加载客户选项（如果已连接）
+        if (this.wsManager && this.wsManager.isConnected) {
+            await this.loadCustomerOptions();
+        } else {
+            console.warn('⚠️ WebSocket 未连接，跳过加载客户选项');
+        }
 
         console.log('✅ DeepAnalysisApp 初始化完成');
     }
@@ -101,22 +108,35 @@ class DeepAnalysisApp {
      * 初始化 WebSocket 连接
      */
     async initWebSocket() {
-        // 等待 WebSocketManager 初始化
-        await this.waitForWebSocket();
+        try {
+            // 等待 WebSocketManager 初始化
+            await this.waitForWebSocketManager();
 
-        if (window.wsManager) {
-            this.wsManager = window.wsManager;
-            console.log('✅ WebSocket 已连接');
-        } else {
-            console.error('❌ WebSocketManager 未找到');
-            throw new Error('WebSocket连接失败');
+            if (window.wsManager) {
+                this.wsManager = window.wsManager;
+
+                // 如果未连接，尝试连接
+                if (!this.wsManager.isConnected) {
+                    console.log('🔄 WebSocket 未连接，尝试建立连接...');
+                    await this.ensureConnection();
+                }
+
+                console.log('✅ WebSocket 已就绪');
+            } else {
+                console.error('❌ WebSocketManager 未找到');
+                throw new Error('WebSocket连接失败');
+            }
+        } catch (error) {
+            console.error('❌ WebSocket 初始化失败:', error);
+            // 不抛出错误，让页面继续加载，但禁用需要连接的功能
+            this.wsManager = null;
         }
     }
 
     /**
-     * 等待 WebSocket 管理器初始化
+     * 等待 WebSocketManager 初始化
      */
-    async waitForWebSocket(maxWait = 5000) {
+    async waitForWebSocketManager(maxWait = 3000) {
         const startTime = Date.now();
         while (!window.wsManager && (Date.now() - startTime < maxWait)) {
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -125,24 +145,59 @@ class DeepAnalysisApp {
         if (!window.wsManager) {
             throw new Error('WebSocket管理器初始化超时');
         }
+    }
 
-        // 等待连接建立
-        const wsManager = window.wsManager;
-        if (!wsManager.isConnected) {
-            await new Promise((resolve, reject) => {
-                const timeout = setTimeout(() => {
-                    reject(new Error('WebSocket连接超时'));
-                }, maxWait);
+    /**
+     * 确保 WebSocket 连接
+     */
+    async ensureConnection(maxAttempts = 3) {
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                console.log(`🔄 连接尝试 ${attempt}/${maxAttempts}...`);
 
-                const checkConnection = setInterval(() => {
-                    if (wsManager.isConnected) {
-                        clearInterval(checkConnection);
-                        clearTimeout(timeout);
-                        resolve();
-                    }
-                }, 100);
-            });
+                // 尝试连接
+                if (!this.wsManager.ws || this.wsManager.ws.readyState === WebSocket.CLOSED) {
+                    this.wsManager.connect();
+                }
+
+                // 等待连接建立（最多10秒）
+                const connected = await this.waitForConnection(10000);
+
+                if (connected) {
+                    console.log('✅ WebSocket 连接成功');
+                    return true;
+                }
+
+                console.warn(`⚠️ 第 ${attempt} 次连接尝试失败`);
+
+                if (attempt < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // 等待1秒后重试
+                }
+            } catch (error) {
+                console.error(`❌ 连接尝试 ${attempt} 失败:`, error);
+            }
         }
+
+        throw new Error('WebSocket连接失败，请检查后端服务');
+    }
+
+    /**
+     * 等待连接建立
+     */
+    async waitForConnection(timeout = 10000) {
+        return new Promise((resolve) => {
+            const startTime = Date.now();
+
+            const checkConnection = setInterval(() => {
+                if (this.wsManager.isConnected) {
+                    clearInterval(checkConnection);
+                    resolve(true);
+                } else if (Date.now() - startTime > timeout) {
+                    clearInterval(checkConnection);
+                    resolve(false);
+                }
+            }, 100);
+        });
     }
 
     /**
@@ -151,15 +206,27 @@ class DeepAnalysisApp {
     initFilters() {
         // 初始化客户多选下拉框
         if (typeof MultiSelectDropdown !== 'undefined') {
-            this.filters.customer = new MultiSelectDropdown('customer', {
-                searchable: true,
-                placeholder: '搜索客户...'
-            });
+            this.filters.customer = new MultiSelectDropdown(
+                'customerDropdown',      // 下拉框容器
+                'customerOptions',       // 选项容器
+                null,                    // 显示区域（使用内联标签）
+                'customerValue',         // 隐藏值字段
+                'customerTags',          // 标签容器
+                'customerSearch',        // 搜索框
+                'selectAllCustomers',    // 全选按钮
+                null                     // onChange 回调
+            );
 
-            this.filters.customerChart = new MultiSelectDropdown('customerChart', {
-                searchable: true,
-                placeholder: '请选择...'
-            });
+            this.filters.customerChart = new MultiSelectDropdown(
+                'customerChartDropdown',
+                'customerChartOptions',
+                null,
+                'customerChartValue',
+                'customerChartTags',
+                'customerChartSearch',
+                'selectAllCustomerChart',
+                null
+            );
 
             console.log('✅ 筛选器已初始化');
         }
@@ -220,6 +287,13 @@ class DeepAnalysisApp {
      */
     async loadCustomerOptions() {
         try {
+            // 检查 WebSocket 是否可用
+            if (!this.wsManager || !this.wsManager.isConnected) {
+                console.warn('⚠️ WebSocket 未连接，无法加载客户列表');
+                this.showError('WebSocket 未连接，请刷新页面重试');
+                return;
+            }
+
             this.showLoading('正在加载客户列表...');
 
             // 通过 WebSocket 获取筛选选项
@@ -227,22 +301,37 @@ class DeepAnalysisApp {
                 dimension: 'customer'
             });
 
-            if (!result || !result.options) {
-                throw new Error('获取客户列表失败');
+            console.log('📦 filter_options 返回数据:', result);
+
+            // 检查不同的返回格式
+            let customerOptions = [];
+
+            if (result && result.options) {
+                // 格式1: { options: [...] }
+                customerOptions = result.options;
+            } else if (Array.isArray(result)) {
+                // 格式2: [...]
+                customerOptions = result;
+            } else if (result && result.customers) {
+                // 格式3: { customers: [...] }
+                customerOptions = result.customers;
+            } else {
+                console.error('❌ 未知的返回格式:', result);
+                throw new Error('获取客户列表失败：数据格式不正确');
             }
 
-            const customerOptions = result.options.map(c => ({
+            const formattedOptions = customerOptions.map(c => ({
                 value: c,
                 label: c
             }));
 
             // 更新下拉框选项
             if (this.filters.customer) {
-                this.filters.customer.setOptions(customerOptions);
+                this.filters.customer.setOptions(formattedOptions);
             }
 
             this.hideLoading();
-            console.log(`✅ 已加载 ${customerOptions.length} 个客户`);
+            console.log(`✅ 已加载 ${formattedOptions.length} 个客户`);
         } catch (error) {
             console.error('❌ 加载客户选项失败:', error);
             this.showError('加载客户列表失败: ' + error.message);
@@ -255,12 +344,30 @@ class DeepAnalysisApp {
      */
     async applyFilters() {
         try {
+            // 检查 WebSocket 是否可用
+            if (!this.wsManager || !this.wsManager.isConnected) {
+                this.showError('WebSocket 未连接！请检查后端服务是否运行，或刷新页面重试。');
+                console.error('❌ WebSocket 未连接，无法执行分析');
+                return;
+            }
+
             // 获取筛选条件
             this.currentFilters.startDate = document.getElementById('startDate').value;
             this.currentFilters.endDate = document.getElementById('endDate').value;
             this.currentFilters.groupBy = document.getElementById('groupBy').value;
             this.currentFilters.movingAvgWindow = parseInt(document.getElementById('movingAvgWindow').value);
             this.currentFilters.customers = this.filters.customer ? this.filters.customer.getSelectedValues() : [];
+
+            // 验证日期
+            if (!this.currentFilters.startDate || !this.currentFilters.endDate) {
+                this.showError('请选择开始和结束日期');
+                return;
+            }
+
+            if (new Date(this.currentFilters.startDate) > new Date(this.currentFilters.endDate)) {
+                this.showError('开始日期不能晚于结束日期');
+                return;
+            }
 
             console.log('📊 开始分析，筛选条件:', this.currentFilters);
 
@@ -300,22 +407,88 @@ class DeepAnalysisApp {
             customers: this.currentFilters.customers.length > 0 ? this.currentFilters.customers : undefined
         });
 
-        if (!result || !result.periods || !result.customerData) {
-            throw new Error('获取数据失败');
+        console.log('📦 customer_dimension_trend 返回数据:', result);
+
+        // 检查数据格式
+        let periods, customerData;
+
+        if (result && result.periods && result.customerData) {
+            // 格式1: 已处理的趋势数据 { periods: [...], customerData: {...} }
+            periods = result.periods;
+            customerData = result.customerData;
+        } else if (result && result.labels && result.datasets) {
+            // 格式2: Chart.js 格式 { labels: [...], datasets: [...] }
+            periods = result.labels;
+            customerData = {};
+            result.datasets.forEach(dataset => {
+                customerData[dataset.label] = dataset.data;
+            });
+        } else if (result && result.records && Array.isArray(result.records)) {
+            // 格式3: 原始数据记录 { records: [...], meta: {...} }
+            console.log('📊 处理原始数据记录...');
+            const processed = this.processRawRecords(result.records);
+            periods = processed.periods;
+            customerData = processed.customerData;
+        } else {
+            console.error('❌ 未知的返回格式:', result);
+            throw new Error('获取数据失败：数据格式不正确');
         }
 
         // 转换数据格式
-        this.analysisData.periods = result.periods;
-        this.analysisData.customerData = result.customerData;
+        this.analysisData.periods = periods;
+        this.analysisData.customerData = customerData;
 
         // 计算总趋势（所有客户的计划ID数总和）
-        this.analysisData.totalTrend = result.periods.map((_, index) => {
-            return Object.values(result.customerData).reduce((sum, values) => {
+        this.analysisData.totalTrend = periods.map((_, index) => {
+            return Object.values(customerData).reduce((sum, values) => {
                 return sum + (values[index] || 0);
             }, 0);
         });
 
-        console.log(`✅ 获取到 ${result.periods.length} 个周期的数据`);
+        console.log(`✅ 获取到 ${periods.length} 个周期的数据`);
+        console.log(`✅ 包含 ${Object.keys(customerData).length} 个客户`);
+    }
+
+    /**
+     * 处理后端返回的聚合数据
+     * 后端返回格式：[{period: "2025-11-01", customer_name: "客户A", record_count: 10}, ...]
+     */
+    processRawRecords(records) {
+        console.log(`📊 处理 ${records.length} 条聚合记录...`);
+
+        // 提取所有周期和客户
+        const periodsSet = new Set();
+        const customersSet = new Set();
+
+        records.forEach(record => {
+            periodsSet.add(record.period);
+            customersSet.add(record.customer_name);
+        });
+
+        const periods = Array.from(periodsSet).sort();
+        const customers = Array.from(customersSet).sort();
+
+        console.log(`📊 找到 ${periods.length} 个周期, ${customers.length} 个客户`);
+
+        // 构建数据映射 key: "period|customer" -> record_count
+        const dataMap = {};
+        records.forEach(record => {
+            const key = `${record.period}|${record.customer_name}`;
+            dataMap[key] = record.record_count || 0;
+        });
+
+        // 构建 customerData（确保每个客户在每个周期都有值，缺失的填0）
+        const customerData = {};
+        customers.forEach(customer => {
+            customerData[customer] = periods.map(period => {
+                const key = `${period}|${customer}`;
+                return dataMap[key] || 0;
+            });
+        });
+
+        console.log(`✅ 处理完成: ${periods.length} 个周期, ${customers.length} 个客户`);
+
+        return { periods, customerData };
     }
 
     /**
@@ -755,10 +928,35 @@ class DeepAnalysisApp {
             setTimeout(() => errorAlert.classList.add('hidden'), 5000);
         }
     }
+
+    /**
+     * 更新连接状态显示
+     */
+    updateConnectionStatus() {
+        const statusDot = document.getElementById('wsStatusDot');
+        const statusText = document.getElementById('wsStatusText');
+
+        if (!statusDot || !statusText) return;
+
+        if (this.wsManager && this.wsManager.isConnected) {
+            statusDot.className = 'w-2 h-2 rounded-full bg-green-500 animate-pulse';
+            statusText.textContent = '已连接';
+            statusText.className = 'text-sm text-green-600 font-medium';
+        } else {
+            statusDot.className = 'w-2 h-2 rounded-full bg-red-500';
+            statusText.textContent = '未连接';
+            statusText.className = 'text-sm text-red-600 font-medium';
+        }
+    }
 }
 
 // 页面加载完成后初始化应用
 document.addEventListener('DOMContentLoaded', async () => {
     const app = new DeepAnalysisApp();
     await app.init();
+
+    // 暴露到全局供调试使用
+    window.deepAnalysisApp = app;
+    console.log('💡 提示：可在控制台使用 window.deepAnalysisApp 访问应用实例');
+    console.log('💡 提示：可在控制台使用 DeepAnalysisDebugHelper.diagnose() 进行诊断');
 });

@@ -3,7 +3,7 @@
 /* ========== 固定筛选条件区域 ========== */
 .sticky-filter-section {
     position: sticky;
-    top: 70px; /* 避开导航栏 */
+    top: 0;
     z-index: 100;
     background: rgba(var(--bg-card), 0.98);
     backdrop-filter: blur(12px);
