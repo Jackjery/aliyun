@@ -58,6 +58,22 @@ function generateCompletePeriods(startDate, endDate, groupBy, existingPeriods = 
 
     let current = new Date(start);
 
+    // 🔧 读取周期规则配置（用于按周分组）
+    let weekConfig = { startDay: 1, startTime: '00:00' }; // 默认周一0点
+    if (groupBy === 'week') {
+        try {
+            const savedConfig = localStorage.getItem('cycleRules');
+            if (savedConfig) {
+                const config = JSON.parse(savedConfig);
+                if (config.week) {
+                    weekConfig = config.week;
+                }
+            }
+        } catch (e) {
+            console.warn('读取周期规则配置失败，使用默认配置', e);
+        }
+    }
+
     while (current <= end) {
         let periodLabel = '';
 
@@ -66,11 +82,29 @@ function generateCompletePeriods(startDate, endDate, groupBy, existingPeriods = 
                 periodLabel = formatDate(current);
                 break;
             case 'week':
-                // 获取周的开始日期（周一）
-                const weekStart = new Date(current);
-                const dayOfWeek = weekStart.getDay();
-                const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // 调整到周一
-                weekStart.setDate(weekStart.getDate() + diff);
+                // 🔧 使用自定义周起始日（与 CycleRuleEngine 一致）
+                const startDay = weekConfig.startDay;
+                const [hours, minutes] = weekConfig.startTime.split(':').map(Number);
+
+                const fileDate = new Date(current);
+                const currentDay = fileDate.getDay();
+
+                // 计算距离本周起始日的天数差
+                let dayDiff = currentDay - startDay;
+                if (dayDiff < 0) {
+                    dayDiff += 7;
+                }
+
+                // 本周起始日的起始时间点
+                const referenceStart = new Date(fileDate);
+                referenceStart.setDate(fileDate.getDate() - dayDiff);
+                referenceStart.setHours(hours || 0, minutes || 0, 0, 0);
+
+                // 计算周期起始时间
+                const weekStart = fileDate >= referenceStart
+                    ? new Date(referenceStart)
+                    : new Date(referenceStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+
                 periodLabel = formatDate(weekStart);
                 break;
             case 'month':
