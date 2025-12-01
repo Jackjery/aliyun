@@ -350,6 +350,53 @@ class SatelliteApp {
     }
 
     /**
+     * 获取周数（使用自定义周起始日配置，与 CycleRuleEngine 一致）
+     * 确保前端显示的周数与后端分组逻辑保持一致
+     */
+    getWeekNumberWithCustomStart(date) {
+        const weekConfig = this.groupingConfig.week;
+        const startDay = weekConfig.startDay; // 0=周日, 1=周一...6=周六
+        const [hours, minutes] = weekConfig.startTime.split(':').map(Number);
+
+        // 创建文件时间对象
+        const fileDate = new Date(
+            date.getFullYear(),
+            date.getMonth(),
+            date.getDate(),
+            date.getHours(),
+            date.getMinutes(),
+            date.getSeconds()
+        );
+
+        // 获取当前日期是星期几
+        const currentDay = fileDate.getDay();
+
+        // 计算距离本周起始日的天数差
+        let dayDiff = currentDay - startDay;
+        if (dayDiff < 0) {
+            dayDiff += 7;
+        }
+
+        // 创建参考日期：本周起始日的起始时间点
+        const referenceStart = new Date(fileDate);
+        referenceStart.setDate(fileDate.getDate() - dayDiff);
+        referenceStart.setHours(hours || 0, minutes || 0, 0, 0);
+
+        // 计算周期起始时间
+        const cycleStart = fileDate >= referenceStart
+            ? new Date(referenceStart)
+            : new Date(referenceStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+        // 计算年份和周数（使用与 CycleRuleEngine 相同的算法）
+        const year = cycleStart.getFullYear();
+        const firstDayOfYear = new Date(year, 0, 1);
+        const pastDaysOfYear = (cycleStart - firstDayOfYear) / 86400000;
+        const week = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+
+        return week;
+    }
+
+    /**
      * 获取筛选条件
      */
     getFilters() {
@@ -397,26 +444,29 @@ class SatelliteApp {
                     return cleanPeriod;
 
                 case 'week':
-                    // 按周：计算是一年中的第几周
+                    // 按周：计算周数并显示年份+周数（如"2025-W44"）
                     if (cleanPeriod.includes('-')) {
                         const date = new Date(cleanPeriod + 'T00:00:00');
-                        const weekNum = this.getWeekNumber(date);
-                        return `W${weekNum}`;
+                        const year = date.getFullYear();
+                        const weekNum = this.getWeekNumberWithCustomStart(date);
+                        return `${year}-W${String(weekNum).padStart(2, '0')}`;
                     }
                     return `W${index + 1}`;
 
                 case 'month':
-                    // 按月：提取月份显示如"10月"
+                    // 按月：显示年份+月份（如"2025-01"）
                     if (cleanPeriod.includes('-')) {
-                        const month = cleanPeriod.split('-')[1];
-                        return `${parseInt(month)}月`;
+                        const parts = cleanPeriod.split('-');
+                        const year = parts[0];
+                        const month = parts[1];
+                        return `${year}-${month}`;
                     }
                     return cleanPeriod;
 
                 case 'quarter':
-                    // 按季度：显示如"Q1"
+                    // 按季度：显示年份+季度（如"2025-Q1"）
                     if (typeof cleanPeriod === 'string' && cleanPeriod.includes('-Q')) {
-                        return cleanPeriod.split('-')[1]; // 提取"Q1"部分
+                        return cleanPeriod; // 已经是"YYYY-Q1"格式
                     }
                     return cleanPeriod;
 
@@ -752,19 +802,22 @@ class SatelliteApp {
                 case 'week':
                     if (cleanPeriod.includes('-')) {
                         const date = new Date(cleanPeriod + 'T00:00:00');
-                        const weekNum = this.getWeekNumber(date);
-                        return `W${weekNum}`;
+                        const year = date.getFullYear();
+                        const weekNum = this.getWeekNumberWithCustomStart(date);
+                        return `${year}-W${String(weekNum).padStart(2, '0')}`;
                     }
                     return `W${index + 1}`;
                 case 'month':
                     if (cleanPeriod.includes('-')) {
-                        const month = cleanPeriod.split('-')[1];
-                        return `${parseInt(month)}月`;
+                        const parts = cleanPeriod.split('-');
+                        const year = parts[0];
+                        const month = parts[1];
+                        return `${year}-${month}`;
                     }
                     return cleanPeriod;
                 case 'quarter':
                     if (typeof cleanPeriod === 'string' && cleanPeriod.includes('-Q')) {
-                        return cleanPeriod.split('-')[1];
+                        return cleanPeriod;
                     }
                     return cleanPeriod;
                 default:
@@ -888,19 +941,22 @@ class SatelliteApp {
                 case 'week':
                     if (cleanPeriod.includes('-')) {
                         const date = new Date(cleanPeriod + 'T00:00:00');
-                        const weekNum = this.getWeekNumber(date);
-                        return `W${weekNum}`;
+                        const year = date.getFullYear();
+                        const weekNum = this.getWeekNumberWithCustomStart(date);
+                        return `${year}-W${String(weekNum).padStart(2, '0')}`;
                     }
                     return `W${index + 1}`;
                 case 'month':
                     if (cleanPeriod.includes('-')) {
-                        const month = cleanPeriod.split('-')[1];
-                        return `${parseInt(month)}月`;
+                        const parts = cleanPeriod.split('-');
+                        const year = parts[0];
+                        const month = parts[1];
+                        return `${year}-${month}`;
                     }
                     return cleanPeriod;
                 case 'quarter':
                     if (typeof cleanPeriod === 'string' && cleanPeriod.includes('-Q')) {
-                        return cleanPeriod.split('-')[1];
+                        return cleanPeriod;
                     }
                     return cleanPeriod;
                 default:

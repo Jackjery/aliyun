@@ -155,19 +155,24 @@ function formatPeriodLabel(period, groupBy) {
         case 'week':
             if (cleanPeriod.includes('-')) {
                 const date = new Date(cleanPeriod + 'T00:00:00');
-                const weekNum = getWeekNumber(date);
-                return `W${weekNum}`;
+                const year = date.getFullYear();
+                // 🔧 使用与 CycleRuleEngine 一致的周数计算逻辑
+                const weekNum = getWeekNumberWithCustomStart(date);
+                return `${year}-W${String(weekNum).padStart(2, '0')}`;
             }
             return cleanPeriod;
         case 'month':
             if (cleanPeriod.includes('-')) {
-                const month = cleanPeriod.split('-')[1];
-                return `${parseInt(month)}月`;
+                const parts = cleanPeriod.split('-');
+                const year = parts[0];
+                const month = parts[1];
+                return `${year}-${month}`;
             }
             return cleanPeriod;
         case 'quarter':
             if (typeof cleanPeriod === 'string' && cleanPeriod.includes('-Q')) {
-                return cleanPeriod.split('-')[1];
+                // cleanPeriod 格式已经是 "YYYY-Q1"，直接返回
+                return cleanPeriod;
             }
             return cleanPeriod;
         default:
@@ -185,4 +190,64 @@ function getWeekNumber(date) {
     const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
     const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
     return weekNo;
+}
+
+/**
+ * 获取周数（使用自定义周起始日配置，与 CycleRuleEngine 一致）
+ * 该函数确保前端显示的周数与后端分组逻辑保持一致
+ */
+function getWeekNumberWithCustomStart(date) {
+    // 从 localStorage 读取周期规则配置
+    let weekConfig = { startDay: 1, startTime: '00:00' }; // 默认周一0点
+    try {
+        const savedConfig = localStorage.getItem('cycleRules');
+        if (savedConfig) {
+            const config = JSON.parse(savedConfig);
+            if (config.week) {
+                weekConfig = config.week;
+            }
+        }
+    } catch (e) {
+        console.warn('读取周期规则配置失败，使用默认配置', e);
+    }
+
+    const startDay = weekConfig.startDay; // 0=周日, 1=周一...6=周六
+    const [hours, minutes] = weekConfig.startTime.split(':').map(Number);
+
+    // 创建文件时间对象
+    const fileDate = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate(),
+        date.getHours(),
+        date.getMinutes(),
+        date.getSeconds()
+    );
+
+    // 获取当前日期是星期几
+    const currentDay = fileDate.getDay();
+
+    // 计算距离本周起始日的天数差
+    let dayDiff = currentDay - startDay;
+    if (dayDiff < 0) {
+        dayDiff += 7;
+    }
+
+    // 创建参考日期：本周起始日的起始时间点
+    const referenceStart = new Date(fileDate);
+    referenceStart.setDate(fileDate.getDate() - dayDiff);
+    referenceStart.setHours(hours || 0, minutes || 0, 0, 0);
+
+    // 计算周期起始时间
+    const cycleStart = fileDate >= referenceStart
+        ? new Date(referenceStart)
+        : new Date(referenceStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    // 计算年份和周数（使用与 CycleRuleEngine 相同的算法）
+    const year = cycleStart.getFullYear();
+    const firstDayOfYear = new Date(year, 0, 1);
+    const pastDaysOfYear = (cycleStart - firstDayOfYear) / 86400000;
+    const week = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+
+    return week;
 }
