@@ -77,10 +77,19 @@ class MultiSelectDropdown {
      * 处理键盘Backspace键事件
      */
     handleKeyDown(e) {
-        // 按下Backspace键时删除最新添加的选项
+        // 按下Backspace键时的行为：
+        // 1. 如果输入框有文字，优先删除文字（不阻止默认行为）
+        // 2. 只有输入框为空时，才删除已选标签
         if (e.key === 'Backspace') {
-            e.preventDefault();
-            this.removeLatestSelection();
+            const searchEl = document.getElementById(this.searchId);
+
+            // 检查输入框是否为空
+            if (searchEl && searchEl.value === '') {
+                // 输入框为空，删除最新添加的标签
+                e.preventDefault();
+                this.removeLatestSelection();
+            }
+            // 否则，让 Backspace 执行默认行为（删除文字）
         }
     }
 

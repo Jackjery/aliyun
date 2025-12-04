@@ -507,6 +507,9 @@
                     this.bindEvents();
                     await this.loadStats();
                     await this.loadData();
+
+                    // 通知父窗口页面已完全就绪
+                    this.notifyPageReady();
                 } catch (error) {
                     console.error('❌ 初始化失败:', error);
                     console.error('❌ 错误详情:', error.message);
@@ -518,6 +521,9 @@
                         this.bindEvents();
                         await this.loadStats();
                         await this.loadData();
+
+                        // 通知父窗口页面已完全就绪
+                        this.notifyPageReady();
                     } catch (loadError) {
                         console.error('❌ 加载数据也失败，退出登录');
                         this.logout();
