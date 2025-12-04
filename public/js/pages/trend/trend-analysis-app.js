@@ -74,6 +74,14 @@ class TrendAnalysisApp {
             taskType: false,
             taskStatus: false
         };
+
+        // Tooltip 显示状态管理（防止闪烁）
+        this.tooltipState = {
+            lastShownTime: 0,       // 上次显示时间
+            currentDataIndex: null, // 当前数据索引
+            showDelayTimer: null,   // 显示延迟计时器
+            hideDelayTimer: null    // 隐藏延迟计时器
+        };
     }
 
     /**
@@ -909,6 +917,32 @@ class TrendAnalysisApp {
                 // 🔧 去除重复标签并合并数据（解决周标签重复问题）
                 chartData = deduplicateChartData(chartData);
 
+                // ✨ 添加总计曲线
+                const totalData = chartData.labels.map((_, index) => {
+                    return chartData.datasets.reduce((sum, dataset) => {
+                        return sum + (dataset.data[index] || 0);
+                    }, 0);
+                });
+
+                // 将总计曲线添加到数据集的开头
+                chartData.datasets.unshift({
+                    label: '总计',
+                    data: totalData,
+                    backgroundColor: 'rgba(16, 185, 129, 0.08)',  // 绿色半透明背景
+                    borderColor: 'rgba(16, 185, 129, 1)',         // 绿色边框
+                    borderWidth: 3,           // 更粗的线条
+                    pointBackgroundColor: 'rgba(16, 185, 129, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,           // 稍大的数据点
+                    pointHoverRadius: 6,
+                    fill: true,
+                    tension: 0.4,
+                    spanGaps: false,
+                    showLine: true,
+                    order: 0                  // 确保总计线在最上层
+                });
+
                 // 销毁旧图表
                 if (this.charts.station) {
                     this.charts.station.destroy();
@@ -1263,7 +1297,8 @@ class TrendAnalysisApp {
             },
             interaction: {
                 mode: 'index',  // 交互模式：显示同一索引位置的所有数据
-                intersect: false // 不需要精确悬停在点上
+                intersect: false, // 不需要精确悬停在点上
+                axis: 'x'  // 沿 X 轴交互，提升触发灵敏度
             },
             elements: {
                 line: {
@@ -1285,7 +1320,14 @@ class TrendAnalysisApp {
                     enabled: false,  // 禁用默认tooltip
                     mode: 'index',
                     intersect: false,
-                    external: this.createScrollableTooltip.bind(this)  // 使用自定义HTML tooltip
+                    position: 'nearest',  // 使用最近位置定位
+                    external: this.createScrollableTooltip.bind(this),  // 使用自定义HTML tooltip
+                    callbacks: {
+                        // 确保所有数据点都显示在 tooltip 中
+                        filter: function(tooltipItem) {
+                            return true;
+                        }
+                    }
                 },
                 datalabels: {
                     display: this.showDataLabels[chartType] || false,
@@ -1355,6 +1397,45 @@ class TrendAnalysisApp {
 
             container.appendChild(item);
         });
+
+        // 添加滚动事件监听，阻止事件冒泡到页面（提升企业级体验）
+        // 移除旧的监听器（如果存在）
+        if (container._wheelHandler) {
+            container.removeEventListener('wheel', container._wheelHandler);
+        }
+
+        // 创建新的滚动事件处理器
+        container._wheelHandler = (event) => {
+            const scrollTop = container.scrollTop;
+            const scrollHeight = container.scrollHeight;
+            const clientHeight = container.clientHeight;
+            const delta = event.deltaY;
+
+            // 检查容器是否需要滚动
+            const needsScroll = scrollHeight > clientHeight;
+
+            // 如果不需要滚动，完全阻止事件冒泡
+            if (!needsScroll) {
+                event.stopPropagation();
+                return;
+            }
+
+            // 如果需要滚动，判断是否到达边界
+            const isAtTop = scrollTop <= 0;
+            const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
+
+            // 到达边界时的处理
+            if ((isAtTop && delta < 0) || (isAtBottom && delta > 0)) {
+                // 允许事件冒泡，让页面滚动
+                return;
+            }
+
+            // 在内容范围内滚动时，阻止事件冒泡
+            event.stopPropagation();
+        };
+
+        // 添加滚动事件监听
+        container.addEventListener('wheel', container._wheelHandler, { passive: true });
     }
 
     /**
@@ -1374,37 +1455,91 @@ class TrendAnalysisApp {
                 color: white;
                 border-radius: 8px;
                 pointer-events: auto;
-                transition: all 0.1s ease;
+                transition: opacity 0.15s ease;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
                 z-index: 9999;
                 box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             `;
             document.body.appendChild(tooltipEl);
 
+            // 初始化状态变量
+            tooltipEl._hovered = false;
+            tooltipEl._hideTimer = null;
+
             // 鼠标进入tooltip时保持显示
             tooltipEl.addEventListener('mouseenter', () => {
                 tooltipEl._hovered = true;
+                tooltipEl._lastInteractionTime = Date.now();  // 记录最后交互时间
+                // 清除隐藏计时器
+                if (tooltipEl._hideTimer) {
+                    clearTimeout(tooltipEl._hideTimer);
+                    tooltipEl._hideTimer = null;
+                }
             });
 
             // 鼠标离开tooltip时延迟隐藏
             tooltipEl.addEventListener('mouseleave', () => {
                 tooltipEl._hovered = false;
-                setTimeout(() => {
-                    if (!tooltipEl._hovered) {
+                // 清除之前的计时器
+                if (tooltipEl._hideTimer) {
+                    clearTimeout(tooltipEl._hideTimer);
+                }
+                // 缩短延迟隐藏时间，提升响应速度
+                tooltipEl._hideTimer = setTimeout(() => {
+                    if (!tooltipEl._hovered && !tooltipEl._chartHovered) {
                         tooltipEl.style.opacity = '0';
+                        tooltipEl.style.pointerEvents = 'none';
                     }
-                }, 300);
+                    tooltipEl._hideTimer = null;
+                }, 100);
             });
         }
 
-        // 隐藏 tooltip（但如果鼠标在tooltip上则保持显示）
+        // 隐藏 tooltip（但使用延迟机制防止闪烁）
         const tooltipModel = context.tooltip;
         if (tooltipModel.opacity === 0) {
+            // 标记图表不再悬停
+            tooltipEl._chartHovered = false;
+
+            // 如果鼠标也不在 tooltip 上，则延迟隐藏
             if (!tooltipEl._hovered) {
-                tooltipEl.style.opacity = '0';
+                // 清除之前的隐藏计时器
+                if (tooltipEl._hideTimer) {
+                    clearTimeout(tooltipEl._hideTimer);
+                }
+
+                // 计算延迟时间：如果刚从 tooltip 离开，给予更长的缓冲时间
+                const timeSinceLastInteraction = tooltipEl._lastInteractionTime
+                    ? Date.now() - tooltipEl._lastInteractionTime
+                    : 9999;
+                const hideDelay = timeSinceLastInteraction < 500 ? 250 : 150;
+
+                tooltipEl._hideTimer = setTimeout(() => {
+                    if (!tooltipEl._hovered && !tooltipEl._chartHovered) {
+                        tooltipEl.style.opacity = '0';
+                        tooltipEl.style.pointerEvents = 'none';
+                    }
+                    tooltipEl._hideTimer = null;
+                }, hideDelay);
             }
             return;
         }
+
+        // 标记图表正在悬停
+        tooltipEl._chartHovered = true;
+        tooltipEl._lastInteractionTime = Date.now();  // 更新最后交互时间
+
+        // 立即清除所有隐藏计时器，确保能快速响应
+        if (tooltipEl._hideTimer) {
+            clearTimeout(tooltipEl._hideTimer);
+            tooltipEl._hideTimer = null;
+        }
+
+        // 强制重置 tooltip 状态，确保可以立即显示
+        tooltipEl._hovered = false;  // 重置悬停状态
+
+        // 启用指针事件，允许鼠标与 tooltip 交互
+        tooltipEl.style.pointerEvents = 'auto';
 
         // 设置内容
         if (tooltipModel.body) {
@@ -1489,14 +1624,22 @@ class TrendAnalysisApp {
 
         // 定位 - 跟随光标Y坐标
         const position = context.chart.canvas.getBoundingClientRect();
+        const tooltipWidth = tooltipEl.offsetWidth;
         const tooltipHeight = tooltipEl.offsetHeight;
+        const windowWidth = window.innerWidth;
         const windowHeight = window.innerHeight;
 
-        // X坐标：显示在光标右侧
+        // X坐标：优先显示在光标右侧，如果空间不足则显示在左侧
         let left = position.left + window.pageXOffset + tooltipModel.caretX + 15;
 
+        // 检查右侧是否有足够空间
+        if (left + tooltipWidth > window.pageXOffset + windowWidth) {
+            // 右侧空间不足，显示在左侧
+            left = position.left + window.pageXOffset + tooltipModel.caretX - tooltipWidth - 15;
+        }
+
         // Y坐标：跟随光标，但避免溢出屏幕
-        let top = position.top + window.pageYOffset + tooltipModel.caretY;
+        let top = position.top + window.pageYOffset + tooltipModel.caretY - (tooltipHeight / 2);
 
         // 如果tooltip会超出屏幕底部，则向上调整
         if (top + tooltipHeight > window.pageYOffset + windowHeight) {
@@ -1508,6 +1651,7 @@ class TrendAnalysisApp {
             top = window.pageYOffset + 10;
         }
 
+        // 显示并定位 tooltip
         tooltipEl.style.opacity = '1';
         tooltipEl.style.left = left + 'px';
         tooltipEl.style.top = top + 'px';

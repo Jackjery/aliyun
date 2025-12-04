@@ -458,26 +458,32 @@ label:has(input[type="checkbox"]) {
     width: 140px;
     min-width: 140px;
     max-height: 100%;
-    overflow-y: auto;
+    overflow-y: auto;  /* auto 只在内容溢出时显示滚动条 */
+    overflow-x: hidden;
     padding: 8px 12px;
     margin-left: 12px;
     border-left: 1px solid rgb(var(--border-color));
     scrollbar-width: thin;
-    scrollbar-color: rgba(var(--color-primary), 0.5) rgba(var(--border-color), 0.3);
+    scrollbar-color: rgba(var(--color-primary), 0.5) transparent;
 }
 .chart-legend-container::-webkit-scrollbar {
     width: 6px;
 }
 .chart-legend-container::-webkit-scrollbar-track {
-    background: rgba(var(--border-color), 0.3);
+    background: transparent;  /* 轨道透明，避免误导 */
     border-radius: 3px;
 }
 .chart-legend-container::-webkit-scrollbar-thumb {
     background: rgba(var(--color-primary), 0.5);
     border-radius: 3px;
+    min-height: 40px;  /* 设置最小高度，提升可用性 */
 }
 .chart-legend-container::-webkit-scrollbar-thumb:hover {
     background: rgba(var(--color-primary), 0.7);
+}
+/* 悬停时显示滚动条轨道，提升可见性 */
+.chart-legend-container:hover::-webkit-scrollbar-track {
+    background: rgba(var(--border-color), 0.15);
 }
 .chart-legend-item {
     display: flex;
