@@ -20,6 +20,8 @@
     <link rel="stylesheet" href="../public/css/output.css">
     <!-- 本地图标系统 -->
     <link rel="stylesheet" href="../public/css/icons.css">
+    <!-- Trend Analysis 筛选器样式（共用） -->
+    <link rel="stylesheet" href="../public/css/trend-analysis.css">
     <!-- Deep Analysis 页面专用样式 -->
     <link rel="stylesheet" href="../public/css/deep-analysis.css">
 
@@ -60,11 +62,20 @@
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">统计周期</label>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-sm font-medium text-gray-700">统计周期</label>
+                        <button id="configGroupingBtn" class="text-gray-500 hover:text-primary transition-colors p-1" title="配置周期规则">
+                            <svg class="inline-block" width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
+                                <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319z"/>
+                            </svg>
+                        </button>
+                    </div>
                     <select id="groupBy" class="filter-select">
                         <option value="day" selected>按日</option>
                         <option value="week">按周</option>
                         <option value="month">按月</option>
+                        <option value="quarter">按季度</option>
                     </select>
                 </div>
                 <div>
@@ -80,33 +91,6 @@
                     <button id="applyFilters" class="w-full px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors">
                         开始分析
                     </button>
-                </div>
-            </div>
-
-            <!-- 客户筛选 -->
-            <div class="grid grid-cols-1">
-                <div class="dropdown-container">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        选择客户 <span class="text-xs text-gray-500">(可多选，留空则分析全部)</span>
-                    </label>
-                    <div class="filter-select cursor-pointer" id="customerDropdown">
-                        <div class="filter-input-area">
-                            <div class="selected-tags-inline" id="customerTags"></div>
-                            <input type="text" placeholder="搜索客户..." id="customerSearch">
-                        </div>
-                        <svg class="dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                        </svg>
-                    </div>
-                    <div class="dropdown-content hidden" id="customerOptions">
-                        <div class="dropdown-options-list"></div>
-                        <div class="dropdown-footer">
-                            <div class="select-all-item" id="selectAllCustomers">
-                                <input type="checkbox"><span>全选</span>
-                            </div>
-                        </div>
-                    </div>
-                    <input type="hidden" id="customerValue" value="">
                 </div>
             </div>
         </section>
@@ -125,148 +109,234 @@
 
         <!-- 分析结果展示区域 -->
         <section id="resultsSection" class="space-y-4 hidden">
-            <!-- 总体趋势图 -->
+            <!-- 总体概览 -->
+            <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-6 card-shadow border-2 border-indigo-200">
+                <h3 class="text-xl font-bold mb-2 text-indigo-900">📊 总体趋势概览</h3>
+                <p class="text-sm text-gray-600 mb-4">基于所有客户的汇总数据进行综合分析</p>
+                <div id="overallSummary" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <!-- 动态生成总体概览 -->
+                </div>
+            </div>
+
+            <!-- 智能分析结论（新增） -->
             <div class="bg-card rounded-lg p-6 card-shadow">
-                <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
-                    <span>总计划ID数趋势与移动平均线</span>
-                    <div class="flex items-center gap-2">
-                        <label class="flex items-center justify-center px-2.5 bg-secondary/10 text-secondary rounded cursor-pointer hover:bg-secondary/20 transition whitespace-nowrap" style="height: 32px;">
-                            <input type="checkbox" id="showTotalLabels" class="mr-1.5 w-4 h-4">
-                            <span class="text-sm font-medium">显示数据标签</span>
-                        </label>
-                        <button class="chart-download-btn flex items-center justify-center px-2.5 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition whitespace-nowrap" style="height: 32px;"
-                                data-chart="totalTrendChart" data-type="image">
-                            <svg class="icon"><use href="#icon-download"/></svg>
-                            <span>下载图表</span>
-                        </button>
-                        <button class="chart-download-btn flex items-center justify-center px-2.5 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition whitespace-nowrap" style="height: 32px;"
-                                data-chart="totalTrendChart" data-type="csv">
-                            <svg class="icon"><use href="#icon-table"/></svg>
-                            <span>下载数据</span>
-                        </button>
-                    </div>
+                <h3 class="text-lg font-semibold mb-4 flex items-center">
+                    <svg class="icon icon-lg mr-2 text-primary"><use href="#icon-lightbulb"/></svg>
+                    <span>🎯 智能分析结论</span>
                 </h3>
-
-                <div class="h-80 border border-default rounded-lg p-4 relative">
-                    <canvas id="totalTrendChart"></canvas>
-                    <div class="absolute inset-0 flex items-center justify-center text-gray-500 hidden" id="totalTrendChartEmpty">
-                        <div class="text-center">
-                            <svg class="icon icon-2xl mb-2"><use href="#icon-line-chart"/></svg>
-                            <p>没有符合条件的数据</p>
-                        </div>
-                    </div>
-                    <div class="chart-loading-overlay hidden" id="totalTrendChartLoading">
-                        <div class="chart-loading-content">
-                            <div class="chart-loading-text">正在渲染图表...</div>
-                        </div>
-                    </div>
+                <div id="analysisConclusion">
+                    <!-- 动态生成分析结论 -->
                 </div>
             </div>
 
-            <!-- 下滑分析结果 -->
-            <div class="bg-card rounded-lg p-6 card-shadow">
-                <h3 class="text-lg font-semibold mb-4">趋势下滑分析结果</h3>
-                <div id="declineAnalysisResult">
-                    <!-- 动态生成分析结果 -->
-                </div>
-            </div>
-
-            <!-- 客户贡献度堆叠图 -->
+            <!-- 季节性与客户关联分析（新增） -->
             <div class="bg-card rounded-lg p-6 card-shadow">
                 <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
-                    <span>客户各称趋势分析（堆叠图）</span>
-                    <div class="flex items-center gap-2">
-                        <div class="dropdown-container relative" style="width: 200px;">
-                            <div class="filter-select cursor-pointer flex items-center" id="customerChartDropdown" style="font-size: 13px; height: 32px; padding: 0 10px; min-height: auto;">
-                                <div class="filter-input-area">
-                                    <div class="selected-tags-inline" id="customerChartTags"></div>
-                                    <input type="text" placeholder="请选择..." id="customerChartSearch">
-                                </div>
-                                <svg class="dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                </svg>
-                            </div>
-                            <div class="dropdown-content hidden" id="customerChartOptions">
-                                <div class="dropdown-options-list"></div>
-                                <div class="dropdown-footer">
-                                    <div class="select-all-item" id="selectAllCustomerChart">
-                                        <input type="checkbox"><span>全选</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <input type="hidden" id="customerChartValue" value="">
-                        </div>
-
-                        <button id="resetCustomerChart" class="flex items-center justify-center px-2.5 text-sm bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition whitespace-nowrap" style="height: 32px;" title="重置图表筛选">
-                            <svg class="icon"><use href="#icon-refresh"/></svg>
-                            <span>重置筛选</span>
-                        </button>
-
-                        <label class="flex items-center justify-center px-2.5 bg-secondary/10 text-secondary rounded cursor-pointer hover:bg-secondary/20 transition whitespace-nowrap" style="height: 32px;">
-                            <input type="checkbox" id="showCustomerLabels" class="mr-1.5 w-4 h-4">
-                            <span class="text-sm font-medium">显示数据标签</span>
-                        </label>
-                        <button class="chart-download-btn flex items-center justify-center px-2.5 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition whitespace-nowrap" style="height: 32px;"
-                                data-chart="customerStackChart" data-type="image">
-                            <svg class="icon"><use href="#icon-download"/></svg>
-                            <span>下载图表</span>
-                        </button>
-                        <button class="chart-download-btn flex items-center justify-center px-2.5 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition whitespace-nowrap" style="height: 32px;"
-                                data-chart="customerStackChart" data-type="csv">
-                            <svg class="icon"><use href="#icon-table"/></svg>
-                            <span>下载数据</span>
-                        </button>
-                    </div>
-                </h3>
-
-                <div class="h-96 border border-default rounded-lg p-4 relative flex">
-                    <div class="flex-1 relative min-w-0">
-                        <canvas id="customerStackChart"></canvas>
-                        <div class="absolute inset-0 flex items-center justify-center text-gray-500 hidden" id="customerStackChartEmpty">
-                            <div class="text-center">
-                                <svg class="icon icon-2xl mb-2"><use href="#icon-line-chart"/></svg>
-                                <p>没有符合条件的数据</p>
-                            </div>
-                        </div>
-                        <div class="chart-loading-overlay hidden" id="customerStackChartLoading">
-                            <div class="chart-loading-content">
-                                <div class="chart-loading-text">正在渲染图表...</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="customerStackChartLegend" class="chart-legend-container"></div>
-                </div>
-            </div>
-
-            <!-- 客户贡献变化详细表格 -->
-            <div class="bg-card rounded-lg p-6 card-shadow">
-                <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
-                    <span>客户贡献度变化详情</span>
-                    <button id="exportTableBtn" class="flex items-center justify-center px-3 py-2 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition">
-                        <svg class="icon mr-1"><use href="#icon-download"/></svg>
-                        <span>导出Excel</span>
+                    <span>🔗 季节性与客户关联分析</span>
+                    <button id="toggleCorrelationInfo" class="flex items-center justify-center px-3 py-2 text-sm bg-secondary/10 text-secondary rounded hover:bg-secondary/20 transition">
+                        <svg class="icon mr-1"><use href="#icon-info-circle"/></svg>
+                        <span>分析说明</span>
                     </button>
                 </h3>
-                <div class="overflow-x-auto">
-                    <table id="contributionTable" class="w-full text-sm">
-                        <thead>
-                            <tr class="border-b border-gray-200">
-                                <th class="text-left py-2 px-3">客户名称</th>
-                                <th class="text-right py-2 px-3">平均贡献度</th>
-                                <th class="text-right py-2 px-3">趋势变化</th>
-                                <th class="text-right py-2 px-3">最大值</th>
-                                <th class="text-right py-2 px-3">最小值</th>
-                                <th class="text-right py-2 px-3">波动系数</th>
-                            </tr>
-                        </thead>
-                        <tbody id="contributionTableBody">
-                            <!-- 动态生成 -->
-                        </tbody>
-                    </table>
+
+                <!-- 关联分析说明面板 -->
+                <div id="correlationInfoPanel" class="mb-4 bg-indigo-50 border border-indigo-200 rounded-lg p-4 hidden">
+                    <h4 class="font-semibold text-indigo-900 mb-3">🔗 相关性分析说明</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                        <div class="bg-white rounded p-3 border border-indigo-100">
+                            <div class="font-semibold text-gray-800 mb-2">📅 季节性检测</div>
+                            <div class="text-gray-600 text-xs mb-2">使用自相关系数检测周期性波动</div>
+                            <div class="bg-gray-50 rounded px-2 py-1 font-mono text-xs">
+                                ACF(k) = Σ(xi - μ)(xi+k - μ) / Σ(xi - μ)²
+                            </div>
+                            <div class="mt-2 text-xs">
+                                <span class="text-green-600">强：>0.7</span> |
+                                <span class="text-yellow-600">中：0.5-0.7</span> |
+                                <span class="text-gray-600">弱：0.3-0.5</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded p-3 border border-indigo-100">
+                            <div class="font-semibold text-gray-800 mb-2">🤝 客户相关性</div>
+                            <div class="text-gray-600 text-xs mb-2">计算客户间的皮尔逊相关系数</div>
+                            <div class="bg-gray-50 rounded px-2 py-1 font-mono text-xs">
+                                r = Σ(x-x̄)(y-ȳ) / √[Σ(x-x̄)²·Σ(y-ȳ)²]
+                            </div>
+                            <div class="mt-2 text-xs">
+                                <span class="text-blue-600">r>0：正相关</span> |
+                                <span class="text-red-600">r<0：负相关</span>
+                            </div>
+                            <p class="mt-1 text-xs text-gray-600">|r|>0.6 视为强相关，可能存在共同影响因素</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- 季节性分析 -->
+                    <div id="seasonalityResult" class="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-lg p-4 border border-cyan-200">
+                        <!-- 动态生成 -->
+                    </div>
+
+                    <!-- 客户相关性 -->
+                    <div id="customerCorrelationResult" class="bg-gradient-to-br from-pink-50 to-pink-100 rounded-lg p-4 border border-pink-200">
+                        <!-- 动态生成 -->
+                    </div>
                 </div>
             </div>
+
+            <!-- 客户级别深度分析（新增核心模块） -->
+            <div class="bg-card rounded-lg p-6 card-shadow border-2 border-blue-300">
+                <div class="mb-6">
+                    <h3 class="text-xl font-bold mb-2 text-blue-900 flex items-center">
+                        <span class="text-2xl mr-2">👤</span>
+                        客户级别深度分析
+                    </h3>
+                    <p class="text-sm text-gray-600 mb-4">为每个客户提供独立的企业级统计分析，全面评估客户趋势健康度</p>
+
+                    <!-- 客户选择器 -->
+                    <div class="flex items-center gap-4">
+                        <label class="text-sm font-medium text-gray-700">选择客户:</label>
+                        <select id="customerAnalysisSelector" class="flex-1 max-w-md px-4 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                            <option value="">-- 请先执行分析 --</option>
+                        </select>
+                        <button id="compareCustomersBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
+                            <svg class="icon"><use href="#icon-line-chart"/></svg>
+                            <span>对比客户</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 客户分析结果容器 -->
+                <div id="customerAnalysisContainer">
+                    <div class="text-center py-12 text-gray-500">
+                        <svg class="icon icon-3xl mx-auto mb-4 opacity-50"><use href="#icon-info-circle"/></svg>
+                        <p>请先选择一个客户查看详细分析</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 客户对比分析（新增） -->
+            <div id="customerComparisonSection" class="bg-card rounded-lg p-6 card-shadow hidden">
+                <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
+                    <span>🔄 客户对比分析</span>
+                    <button id="closeComparisonBtn" class="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition">
+                        关闭对比
+                    </button>
+                </h3>
+                <div id="customerComparisonContainer">
+                    <!-- 动态生成对比内容 -->
+                </div>
+            </div>
+
+            <!-- 趋势贡献分解分析（新增） -->
+            <div class="bg-card rounded-lg p-6 card-shadow">
+                <h3 class="text-lg font-semibold mb-4 flex items-center">
+                    <svg class="icon icon-lg mr-2 text-primary"><use href="#icon-trend-up"/></svg>
+                    <span>📈 趋势贡献分解分析</span>
+                </h3>
+                <div id="trendContributionDecomposition">
+                    <!-- 动态生成趋势贡献分解 -->
+                </div>
+            </div>
+
         </section>
     </main>
+
+    <!-- 周期规则配置模态框 -->
+    <div id="configModal" class="fixed inset-0 modal-backdrop flex items-center justify-center z-50 hidden">
+        <div class="bg-card rounded-lg w-full max-w-md p-6 transform transition-all scale-95 opacity-0" id="modalContent">
+            <div>
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">周期规则配置（所有时间均为文件时间）</h3>
+                    <button id="closeConfigModal" class="text-gray-500 hover:text-gray-700 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="mb-6 pb-4 border-b border-gray-100">
+                    <h4 class="font-medium mb-3">按日周期</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">周期起始时间</label>
+                            <input type="time" id="dayStart" class="w-full p-2 border border-gray-300 rounded-md" value="00:00">
+                        </div>
+                        <div>
+                            <p class="block text-sm text-gray-600 mb-1">周期范围</p>
+                            <div class="p-2 border border-gray-200 rounded-md bg-gray-50 text-sm">
+                                X日 <span id="dayStartDisplay">00:00</span> 至 X+1日 <span id="dayEndDisplay">00:00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-6 pb-4 border-b border-gray-100">
+                    <h4 class="font-medium mb-3">按周周期</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">周起始日</label>
+                            <select id="weekStartDay" class="w-full p-2 border border-gray-300 rounded-md">
+                                <option value="0">周日</option>
+                                <option value="1" selected>周一</option>
+                                <option value="2">周二</option>
+                                <option value="3">周三</option>
+                                <option value="4">周四</option>
+                                <option value="5">周五</option>
+                                <option value="6">周六</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">起始时间</label>
+                            <input type="time" id="weekStartTime" class="w-full p-2 border border-gray-300 rounded-md" value="00:00">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-6 pb-4 border-b border-gray-100">
+                    <h4 class="font-medium mb-3">按月周期</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">月起始日期</label>
+                            <input type="number" id="monthStartDate" min="1" max="31" class="w-full p-2 border border-gray-300 rounded-md" value="1">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">起始时间</label>
+                            <input type="time" id="monthStartTime" class="w-full p-2 border border-gray-300 rounded-md" value="00:00">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <h4 class="font-medium mb-3">按季度周期</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">季度起始月份</label>
+                            <select id="quarterStartMonth" class="w-full p-2 border border-gray-300 rounded-md">
+                                <option value="1" selected>1月（Q1:1-3月）</option>
+                                <option value="4">4月（Q2:4-6月）</option>
+                                <option value="7">7月（Q3:7-9月）</option>
+                                <option value="10">10月（Q4:10-12月）</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">起始时间</label>
+                            <input type="time" id="quarterStartTime" class="w-full p-2 border border-gray-300 rounded-md" value="00:00">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <button id="resetConfigBtn" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
+                        重置为默认
+                    </button>
+                    <button id="saveConfigBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors">
+                        保存配置
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- JavaScript -->
     <script src="../public/js/common/websocket-manager.js"></script>
@@ -315,5 +385,62 @@
             });
         }
     </script>
+
+    <!-- 总体详情模态框 -->
+    <div id="overviewDetailModal" class="modal-backdrop hidden">
+        <div class="bg-white rounded-lg w-full mx-4" style="max-width: 1000px; max-height: 85vh; display: flex; flex-direction: column;" id="overviewDetailModalContent">
+            <!-- 固定头部 -->
+            <div class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-lg" style="flex-shrink: 0;">
+                <h3 class="text-xl font-bold text-gray-800" id="overviewDetailTitle">详情</h3>
+                <button id="closeOverviewDetailModal" class="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded p-1.5 transition-all duration-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <!-- 可滚动内容区域 -->
+            <div class="p-5" style="flex: 1; overflow-y: auto; overflow-x: hidden;" id="overviewDetailContent">
+                <!-- 动态内容 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 客户详情模态框 -->
+    <div id="customerDetailModal" class="modal-backdrop hidden">
+        <div class="bg-card rounded-lg w-full max-w-5xl transform transition-all scale-95 opacity-0" id="customerDetailModalContent">
+            <div class="bg-card border-b border-default px-6 py-4 flex items-center justify-between rounded-t-lg">
+                <h3 class="text-xl font-bold text-primary" id="customerDetailTitle">客户详情</h3>
+                <button id="closeCustomerDetailModal" class="text-gray-500 hover:text-gray-700 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6">
+                <!-- 工具栏 -->
+                <div class="flex items-center justify-between mb-4">
+                    <label class="flex items-center justify-center px-3 py-2 bg-secondary/10 text-secondary rounded cursor-pointer hover:bg-secondary/20 transition">
+                        <input type="checkbox" id="showCustomerDetailLabels" class="mr-2 w-4 h-4">
+                        <span class="text-sm font-medium">显示数据标签</span>
+                    </label>
+                    <div class="flex items-center gap-2">
+                        <button id="downloadCustomerChart" class="flex items-center justify-center px-3 py-2 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition">
+                            <svg class="icon mr-1"><use href="#icon-download"/></svg>
+                            <span>下载图表</span>
+                        </button>
+                        <button id="downloadCustomerData" class="flex items-center justify-center px-3 py-2 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition">
+                            <svg class="icon mr-1"><use href="#icon-table"/></svg>
+                            <span>下载数据</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 客户趋势图 -->
+                <div class="h-96 border border-default rounded-lg p-4 relative">
+                    <canvas id="customerDetailChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

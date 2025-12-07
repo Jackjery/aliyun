@@ -392,6 +392,45 @@ label:has(input[type="checkbox"]) {
     text-overflow: ellipsis;
 }
 
+/* ========== 迷你趋势线（Sparkline） ========== */
+.sparkline {
+    display: block;
+    margin: 0 auto;
+}
+
+.sparkline polyline {
+    transition: stroke-width 0.2s;
+}
+
+.sparkline:hover polyline {
+    stroke-width: 2.5;
+}
+
+/* ========== 客户详情模态框 ========== */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+}
+
+.modal-backdrop.hidden {
+    display: none;
+}
+
+#customerDetailModalContent {
+    transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+}
+
 /* ========== 图表加载状态 ========== */
 .chart-loading-overlay {
     position: absolute;
@@ -601,4 +640,28 @@ label:has(input[type="checkbox"]) {
 
 .empty-state-text {
     font-size: 14px;
+}
+
+/* 模态框内容滚动条样式 */
+#overviewDetailContent {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(99, 102, 241, 0.5) rgba(229, 231, 235, 0.5);
+}
+
+#overviewDetailContent::-webkit-scrollbar {
+    width: 8px;
+}
+
+#overviewDetailContent::-webkit-scrollbar-track {
+    background: rgba(229, 231, 235, 0.5);
+    border-radius: 4px;
+}
+
+#overviewDetailContent::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.5);
+    border-radius: 4px;
+}
+
+#overviewDetailContent::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.8);
 }
