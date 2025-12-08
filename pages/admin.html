@@ -505,8 +505,14 @@
 
                 // 检查认证状态
                 if (!this.token) {
-                    console.error('❌ 未找到token，跳转登录页');
-                    this.redirectToLogin();
+                    console.error('❌ 未找到token');
+                    console.warn('⚠️ Token检查失败，但admin页面在iframe中由spa-controller管理权限');
+                    // 在iframe中不执行重定向，由父窗口的spa-controller处理
+                    // this.redirectToLogin();
+                    // return;
+
+                    // 显示错误信息但不跳转
+                    this.showMessage('未找到登录信息，请重新登录', 'error');
                     return;
                 }
 
@@ -535,8 +541,13 @@
                         // 通知父窗口页面已完全就绪
                         this.notifyPageReady();
                     } catch (loadError) {
-                        console.error('❌ 加载数据也失败，退出登录');
-                        this.logout();
+                        console.error('❌ 加载数据失败:', loadError);
+                        console.warn('⚠️ 数据加载失败，但保持登录状态');
+                        // 不自动logout，显示错误信息即可
+                        this.showMessage('数据加载失败，请稍后重试', 'error');
+
+                        // 仍然通知父窗口页面已就绪
+                        this.notifyPageReady();
                     }
                 }
             }
