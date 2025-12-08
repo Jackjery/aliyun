@@ -20,33 +20,41 @@
                 referer: document.referrer || ''
             };
 
-            // 发送到服务器（使用 navigator.sendBeacon 确保页面卸载时也能发送）
             const apiUrl = `${API_BASE_URL}/api/visit-log`;
 
-            // 优先使用 sendBeacon（更可靠）
-            if (navigator.sendBeacon) {
-                const blob = new Blob(
-                    [JSON.stringify(visitData)],
-                    { type: 'application/json' }
-                );
-                navigator.sendBeacon(apiUrl, blob);
-            } else {
-                // 降级到 fetch
-                fetch(apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(visitData),
-                    keepalive: true // 确保在页面卸载时也能发送
-                }).catch(err => {
-                    console.warn('访问日志发送失败:', err);
-                });
-            }
+            // 使用 fetch 发送请求（更好的错误处理和跨域支持）
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(visitData),
+                mode: 'cors', // 显式启用CORS
+                credentials: 'omit' // 不发送凭证
+            })
+            .then(response => {
+                if (response.ok) {
+                    console.log('✅ 访问日志已发送:', visitData);
+                    return response.json();
+                } else {
+                    console.warn('⚠️ 访问日志发送失败，状态码:', response.status);
+                    return response.text().then(text => {
+                        console.warn('   服务器响应:', text);
+                    });
+                }
+            })
+            .then(data => {
+                if (data) {
+                    console.log('   服务器返回:', data);
+                }
+            })
+            .catch(err => {
+                console.warn('❌ 访问日志发送失败:', err.message);
+                console.warn('   API地址:', apiUrl);
+            });
 
-            console.log('📊 访问日志已发送:', visitData);
         } catch (error) {
-            console.warn('访问日志记录失败:', error);
+            console.warn('❌ 访问日志记录失败:', error);
         }
     }
 
