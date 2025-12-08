@@ -19,27 +19,34 @@
     <!-- Excel库 -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
-    <!-- 权限预检查 - 在页面渲染前执行，防止未授权访问闪现 -->
+    <!-- 权限预检查 - 仅在直接访问admin.html时执行 -->
     <script>
         (function() {
-            // 立即检查token，防止页面内容闪现
-            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+            // 判断是否在iframe中
+            const isInIframe = window.self !== window.top;
 
-            if (!token) {
-                console.warn('⚠️ 未授权访问，立即重定向到登录页');
-
-                // 判断是否在iframe中
-                if (window.self !== window.top) {
-                    // 在iframe中，重定向父窗口
-                    window.top.location.href = 'pages/login.html';
-                } else {
-                    // 不在iframe中，直接重定向
-                    window.location.href = 'login.html';
-                }
-
-                // 阻止页面继续渲染
-                document.write('<style>body{display:none!important;}</style>');
+            // 如果在iframe中，跳过预检查（由父窗口的spa-controller处理）
+            if (isInIframe) {
+                console.log('✅ 在iframe中，跳过权限预检查');
+                return;
             }
+
+            // 只有直接访问admin.html时才检查
+            console.log('🔐 检查权限（直接访问模式）...');
+
+            // 延迟检查，确保token已经完全写入
+            setTimeout(() => {
+                const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+
+                if (!token) {
+                    console.warn('⚠️ 未授权访问，重定向到登录页');
+                    window.location.href = 'login.html';
+                    // 阻止页面继续渲染
+                    document.write('<style>body{display:none!important;}</style>');
+                } else {
+                    console.log('✅ 权限验证通过');
+                }
+            }, 100);
         })();
     </script>
 

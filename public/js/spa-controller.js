@@ -80,7 +80,10 @@ class SPAController {
             this.navigateTo(initialPage, false);
         } else {
             // 如果是首页 dashboard，显示骨架屏并等待就绪消息
-            this.showSkeleton();
+            // admin页面不显示骨架屏
+            if (initialPage !== 'admin') {
+                this.showSkeleton();
+            }
             // 等待 dashboard iframe 加载完成后询问
             const dashboardFrame = document.getElementById('frame-dashboard');
             if (dashboardFrame) {
@@ -158,8 +161,11 @@ class SPAController {
 
         console.log(`🔀 页面切换: ${this.currentPage} → ${page}`);
 
-        // 显示骨架屏
-        this.showSkeleton();
+        // admin页面不显示骨架屏（有自己的加载状态）
+        if (page !== 'admin') {
+            // 显示骨架屏
+            this.showSkeleton();
+        }
 
         // 隐藏当前页面
         const currentFrame = document.getElementById(`frame-${this.currentPage}`);

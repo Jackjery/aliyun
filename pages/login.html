@@ -238,18 +238,26 @@
                         const token = result.data.token;
                         console.log('💾 准备保存 token:', token);
                         console.log('💾 保存位置:', remember ? 'localStorage' : 'sessionStorage');
+
                         storage.setItem('authToken', token);
                         storage.setItem('userInfo', JSON.stringify(result.data.user));
-                        console.log('✅ Token 已保存');
-                        console.log('🔍 验证读取:', storage.getItem('authToken'));
+
+                        // 验证token已成功保存
+                        const savedToken = storage.getItem('authToken');
+                        if (savedToken === token) {
+                            console.log('✅ Token 已成功保存并验证');
+                        } else {
+                            console.error('❌ Token 保存验证失败');
+                        }
 
                         // 成功提示
                         showSuccess('登录成功，正在跳转...');
 
-                        // 跳转到主应用的管理页面（使用 hash 路由）
+                        // 确保token完全写入后再跳转（延迟稍长一些）
                         setTimeout(() => {
+                            console.log('🔄 开始跳转到 index.html#admin');
                             window.location.href = '../index.html#admin';
-                        }, 1000);
+                        }, 1500);
 
                     } else {
                         showError(result.error || '登录失败，请检查用户名和密码');
