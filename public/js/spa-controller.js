@@ -149,17 +149,33 @@ class SPAController {
     navigateTo(page, pushState = true) {
         if (page === this.currentPage) return;
 
+        console.log(`🔀 [SPA] 准备切换页面: ${this.currentPage} → ${page}`);
+
         // 🔐 导航守卫：访问admin页面需要验证token
         if (page === 'admin') {
-            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-            if (!token) {
-                console.warn('⚠️ 访问admin页面需要登录，重定向到登录页');
-                window.location.href = 'pages/login.html';
-                return;
+            // 检查是否是从登录页面跳转过来的
+            const urlParams = new URLSearchParams(window.location.search);
+            const fromLogin = urlParams.get('from') === 'login';
+
+            if (fromLogin) {
+                console.log('✅ [SPA] 检测到从登录页面跳转，跳过token检查');
+                // 清除URL参数，避免刷新时还是跳过检查
+                const cleanUrl = window.location.origin + window.location.pathname + window.location.hash;
+                window.history.replaceState(null, '', cleanUrl);
+            } else {
+                const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+                console.log('🔍 [SPA] 检查admin访问权限, token:', token ? '存在' : '不存在');
+
+                if (!token) {
+                    console.warn('⚠️ [SPA] 未找到token，重定向到登录页');
+                    window.location.href = 'pages/login.html';
+                    return; // 立即返回，不继续执行
+                }
+                console.log('✅ [SPA] token验证通过，允许访问admin页面');
             }
         }
 
-        console.log(`🔀 页面切换: ${this.currentPage} → ${page}`);
+        console.log(`🔀 [SPA] 开始切换页面: ${this.currentPage} → ${page}`);
 
         // admin页面不显示骨架屏（有自己的加载状态）
         if (page !== 'admin') {

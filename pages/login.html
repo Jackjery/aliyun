@@ -236,28 +236,39 @@
                         // 保存token到localStorage或sessionStorage
                         const storage = remember ? localStorage : sessionStorage;
                         const token = result.data.token;
-                        console.log('💾 准备保存 token:', token);
-                        console.log('💾 保存位置:', remember ? 'localStorage' : 'sessionStorage');
+                        console.log('💾 [Login] 准备保存 token:', token);
+                        console.log('💾 [Login] 保存位置:', remember ? 'localStorage' : 'sessionStorage');
 
                         storage.setItem('authToken', token);
                         storage.setItem('userInfo', JSON.stringify(result.data.user));
 
-                        // 验证token已成功保存
-                        const savedToken = storage.getItem('authToken');
-                        if (savedToken === token) {
-                            console.log('✅ Token 已成功保存并验证');
-                        } else {
-                            console.error('❌ Token 保存验证失败');
-                        }
+                        // 多次验证token是否保存成功
+                        let verifyCount = 0;
+                        const maxVerify = 5;
+                        const verifyInterval = setInterval(() => {
+                            verifyCount++;
+                            const savedToken = storage.getItem('authToken');
+                            console.log(`🔍 [Login] 第${verifyCount}次验证token:`, savedToken ? '存在' : '不存在');
 
-                        // 成功提示
-                        showSuccess('登录成功，正在跳转...');
+                            if (savedToken === token || verifyCount >= maxVerify) {
+                                clearInterval(verifyInterval);
+                                if (savedToken === token) {
+                                    console.log('✅ [Login] Token已成功保存并验证');
 
-                        // 确保token完全写入后再跳转（延迟稍长一些）
-                        setTimeout(() => {
-                            console.log('🔄 开始跳转到 index.html#admin');
-                            window.location.href = '../index.html#admin';
-                        }, 1500);
+                                    // 成功提示
+                                    showSuccess('登录成功，正在跳转...');
+
+                                    // 跳转到admin页面，使用URL参数标记这是登录跳转
+                                    setTimeout(() => {
+                                        console.log('🔄 [Login] 开始跳转到 index.html#admin');
+                                        window.location.href = '../index.html?from=login#admin';
+                                    }, 1000);
+                                } else {
+                                    console.error('❌ [Login] Token保存验证失败');
+                                    showError('登录状态保存失败，请重试');
+                                }
+                            }
+                        }, 200);
 
                     } else {
                         showError(result.error || '登录失败，请检查用户名和密码');
