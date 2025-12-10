@@ -551,6 +551,48 @@
                     <div id="statusChartLegend" class="chart-legend-container"></div>
                 </div>
             </div>
+
+            <!-- 成功率趋势图 -->
+            <div class="bg-card rounded-lg p-6 card-shadow">
+                <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
+                    <span>成功率趋势分析</span>
+                    <div class="flex items-center" style="gap: 8px; margin-left: 15px;">
+                        <label class="flex items-center justify-center px-2.5 bg-secondary/10 text-secondary rounded cursor-pointer hover:bg-secondary/20 transition whitespace-nowrap" style="height: 32px;">
+                            <input type="checkbox" id="showSuccessRateLabels" class="mr-1.5 w-4 h-4">
+                            <span class="text-sm font-medium">显示数据标签</span>
+                        </label>
+                        <button class="chart-download-btn flex items-center justify-center px-2.5 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition whitespace-nowrap" style="height: 32px;"
+                                data-chart="successRateChart" data-type="image">
+                            <svg class="icon"><use href="#icon-download"/></svg>
+                            <span>下载图表</span>
+                        </button>
+                        <button class="chart-download-btn flex items-center justify-center px-2.5 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition whitespace-nowrap" style="height: 32px;"
+                                data-chart="successRateChart" data-type="csv">
+                            <svg class="icon"><use href="#icon-table"/></svg>
+                            <span>下载数据</span>
+                        </button>
+                    </div>
+                </h3>
+
+                <div class="h-96 border border-default rounded-lg p-4 relative flex">
+                    <div class="flex-1 relative min-w-0">
+                        <canvas id="successRateChart"></canvas>
+                        <div class="absolute inset-0 flex items-center justify-center text-gray-500 hidden" id="successRateChartEmpty">
+                            <div class="text-center">
+                                <svg class="icon icon-2xl mb-2"><use href="#icon-line-chart"/></svg>
+                                <p>没有符合条件的数据</p>
+                            </div>
+                        </div>
+                        <!-- 加载状态 -->
+                        <div class="chart-loading-overlay hidden" id="successRateChartLoading">
+                            <div class="chart-loading-content">
+                                <div class="chart-loading-text">正在渲染图表...</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="successRateChartLegend" class="chart-legend-container"></div>
+                </div>
+            </div>
         </section>
     </main>
 

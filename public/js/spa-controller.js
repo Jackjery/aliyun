@@ -252,6 +252,7 @@ class SPAController {
         const titles = {
             'dashboard': '卫星任务数据分析平台',
             'trend': '数据趋势分析 - 卫星任务数据分析平台',
+            'trend-comparison': '趋势对比分析 - 卫星任务数据分析平台',
             'distribution': '数据分布统计 - 卫星任务数据分析平台',
             'warning': '圈次数据预警 - 卫星任务数据分析平台',
             'admin': '数据管理 - 卫星任务数据分析平台'
@@ -287,14 +288,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // 全局快捷键支持（可选）
 document.addEventListener('keydown', (e) => {
-    // Alt + 1/2/3/4/5 快速切换页面
+    // Alt + 1/2/3/4/5/6 快速切换页面
     if (e.altKey && !e.ctrlKey && !e.shiftKey) {
         const pageMap = {
             '1': 'dashboard',
             '2': 'trend',
-            '3': 'distribution',
-            '4': 'warning',
-            '5': 'admin'
+            '3': 'trend-comparison',
+            '4': 'distribution',
+            '5': 'warning',
+            '6': 'admin'
         };
         const page = pageMap[e.key];
         if (page && window.spaController) {

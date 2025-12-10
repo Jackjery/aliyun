@@ -205,8 +205,10 @@ function deduplicateChartData(chartData) {
 
 /**
  * 将图表数据转换为CSV
+ * @param {Object} chart - Chart.js 图表实例
+ * @param {boolean} isPercentage - 是否将数值格式化为百分数（添加%符号）
  */
-function chartToCSV(chart) {
+function chartToCSV(chart, isPercentage = false) {
     if (!chart) return '';
     const labels = chart.data.labels || [];
     const datasets = chart.data.datasets || [];
@@ -217,7 +219,12 @@ function chartToCSV(chart) {
     for (let i = 0; i < labels.length; i++) {
         const row = [labels[i]];
         for (let j = 0; j < datasets.length; j++) {
-            row.push(datasets[j].data[i] ?? '');
+            let value = datasets[j].data[i];
+            // 如果是百分数格式且值不为空，添加%符号
+            if (isPercentage && value !== null && value !== undefined && value !== '') {
+                value = value + '%';
+            }
+            row.push(value ?? '');
         }
         rows.push(row);
     }

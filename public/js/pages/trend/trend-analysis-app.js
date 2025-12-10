@@ -33,7 +33,8 @@ class TrendAnalysisApp {
             customer: null,
             satellite: null,
             taskType: null,
-            taskStatus: null
+            taskStatus: null,
+            successRate: null
         };
 
         // 当前筛选条件
@@ -72,7 +73,8 @@ class TrendAnalysisApp {
             customer: false,
             satellite: false,
             taskType: false,
-            taskStatus: false
+            taskStatus: false,
+            successRate: false
         };
 
         // Tooltip 显示状态管理（防止闪烁）
@@ -88,8 +90,6 @@ class TrendAnalysisApp {
      * 初始化应用
      */
     async init() {
-        console.log('🚀 TrendAnalysisApp 初始化开始');
-
         // 清除缓存（页面刷新时）
         this.clearPageCache();
 
@@ -113,8 +113,6 @@ class TrendAnalysisApp {
 
         // 加载筛选器选项
         await this.loadFilterOptions();
-
-        console.log('✅ TrendAnalysisApp 初始化完成');
     }
 
     /**
@@ -124,7 +122,6 @@ class TrendAnalysisApp {
         // 清除 sessionStorage 中的图表缓存
         sessionStorage.removeItem('trend_chart_cache');
         sessionStorage.removeItem('trend_filter_state');
-        console.log('🗑️ 页面缓存已清除');
     }
 
     /**
@@ -151,7 +148,6 @@ class TrendAnalysisApp {
         if (startDateEl) startDateEl.value = this.currentFilters.startDate;
         if (endDateEl) endDateEl.value = this.currentFilters.endDate;
 
-        console.log(`📅 日期已初始化: ${this.currentFilters.startDate} ~ ${this.currentFilters.endDate}`);
     }
 
     /**
@@ -178,7 +174,6 @@ class TrendAnalysisApp {
         // 设置连接状态回调
         this.wsManager.onConnectionChange = (connected) => {
             if (connected) {
-                console.log('✅ WebSocket 已连接');
             } else {
                 console.warn('⚠️ WebSocket 连接断开');
             }
@@ -189,7 +184,6 @@ class TrendAnalysisApp {
             const checkInterval = setInterval(() => {
                 if (this.wsManager.isConnected) {
                     clearInterval(checkInterval);
-                    console.log('✅ WebSocket 连接成功');
                     resolve();
                 }
             }, 100);
@@ -263,7 +257,6 @@ class TrendAnalysisApp {
             (values) => this.onTopFilterChange('taskStatuses', values)
         );
 
-        console.log('✅ 顶部筛选器初始化完成');
     }
 
     /**
@@ -325,7 +318,6 @@ class TrendAnalysisApp {
             (values) => this.onChartFilterChange('taskStatuses', values)
         );
 
-        console.log('✅ 图表筛选器初始化完成');
     }
 
     /**
@@ -393,12 +385,14 @@ class TrendAnalysisApp {
         const showSatelliteLabels = document.getElementById('showSatelliteLabels');
         const showTypeLabels = document.getElementById('showTypeLabels');
         const showStatusLabels = document.getElementById('showStatusLabels');
+        const showSuccessRateLabels = document.getElementById('showSuccessRateLabels');
 
         if (showStationLabels) showStationLabels.addEventListener('change', (e) => this.toggleDataLabels('station', e.target.checked));
         if (showCustomerLabels) showCustomerLabels.addEventListener('change', (e) => this.toggleDataLabels('customer', e.target.checked));
         if (showSatelliteLabels) showSatelliteLabels.addEventListener('change', (e) => this.toggleDataLabels('satellite', e.target.checked));
         if (showTypeLabels) showTypeLabels.addEventListener('change', (e) => this.toggleDataLabels('taskType', e.target.checked));
         if (showStatusLabels) showStatusLabels.addEventListener('change', (e) => this.toggleDataLabels('taskStatus', e.target.checked));
+        if (showSuccessRateLabels) showSuccessRateLabels.addEventListener('change', (e) => this.toggleDataLabels('successRate', e.target.checked));
 
         // 下载按钮
         const downloadBtns = document.querySelectorAll('.chart-download-btn');
@@ -413,8 +407,6 @@ class TrendAnalysisApp {
                 }
             });
         });
-
-        console.log('✅ 事件监听初始化完成');
     }
 
     /**
@@ -458,7 +450,6 @@ class TrendAnalysisApp {
             });
         }
 
-        console.log('✅ 周期规则模态框初始化完成');
     }
 
     /**
@@ -528,7 +519,6 @@ class TrendAnalysisApp {
 
         // 保存到 localStorage
         localStorage.setItem('cycle_rules', JSON.stringify(this.cycleRules));
-        console.log('💾 周期规则已保存', this.cycleRules);
     }
 
     /**
@@ -544,7 +534,6 @@ class TrendAnalysisApp {
                 if (rules.day && rules.day.start && !rules.day.startTime) {
                     rules.day.startTime = rules.day.start;
                     delete rules.day.start;
-                    console.log('🔄 已迁移周期规则格式：day.start -> day.startTime');
                     // 保存迁移后的数据
                     localStorage.setItem('cycle_rules', JSON.stringify(rules));
                 }
@@ -607,7 +596,6 @@ class TrendAnalysisApp {
         if (quarterStartMonth) quarterStartMonth.value = this.cycleRules.quarter.startMonth;
         if (quarterStartTime) quarterStartTime.value = this.cycleRules.quarter.startTime;
 
-        console.log('📋 配置已加载到表单', this.cycleRules);
     }
 
     /**
@@ -657,14 +645,6 @@ class TrendAnalysisApp {
                 this.chartFilters.satellite.setOptions(this.allOptions.satellites);
                 this.chartFilters.taskType.setOptions(this.allOptions.taskTypes);
                 this.chartFilters.taskStatus.setOptions(this.allOptions.taskStatuses);
-
-                console.log('✅ 筛选器选项加载完成', {
-                    stations: this.allOptions.stations.length,
-                    customers: this.allOptions.customers.length,
-                    satellites: this.allOptions.satellites.length,
-                    taskTypes: this.allOptions.taskTypes.length,
-                    taskStatuses: this.allOptions.taskStatuses.length
-                });
             }
 
             this.hideLoading();
@@ -681,7 +661,6 @@ class TrendAnalysisApp {
     onTopFilterChange(filterName, values) {
         if (this.syncLock) return;
 
-        console.log(`🔄 顶部筛选器变化: ${filterName}`, values);
 
         // 更新当前筛选条件
         this.currentFilters[filterName] = values;
@@ -702,7 +681,6 @@ class TrendAnalysisApp {
     onChartFilterChange(filterName, values) {
         if (this.syncLock) return;
 
-        console.log(`🔄 图表筛选器变化: ${filterName}`, values);
 
         // 同步到对应的顶部筛选器
         this.syncToTopFilter(filterName, values);
@@ -787,7 +765,6 @@ class TrendAnalysisApp {
                     }
                 }
 
-                console.log('✅ 级联筛选器选项更新完成');
             }
         } catch (error) {
             console.error('❌ 级联更新失败', error);
@@ -858,7 +835,6 @@ class TrendAnalysisApp {
      * 渲染所有图表
      */
     async renderAllCharts() {
-        console.log('🎨 开始渲染所有图表', this.currentFilters);
 
         // 显示图表区域
         const chartsSection = document.getElementById('chartsSection');
@@ -871,10 +847,10 @@ class TrendAnalysisApp {
             this.renderCustomerChart(),
             this.renderSatelliteChart(),
             this.renderTaskTypeChart(),
-            this.renderTaskStatusChart()
+            this.renderTaskStatusChart(),
+            this.renderSuccessRateChart()
         ]);
 
-        console.log('✅ 所有图表渲染完成');
     }
 
     /**
@@ -1279,11 +1255,174 @@ class TrendAnalysisApp {
     }
 
     /**
+     * 渲染成功率趋势图
+     */
+    async renderSuccessRateChart() {
+        try {
+            const canvas = document.getElementById('successRateChart');
+            const emptyState = document.getElementById('successRateChartEmpty');
+            if (!canvas) return;
+
+            this.showChartLoading('successRate');
+
+            // 确定使用测站还是客户维度（优先客户）
+            const useCustomer = this.currentFilters.customers && this.currentFilters.customers.length > 0;
+            const apiEndpoint = useCustomer ? 'customer_dimension_trend' : 'station_trend';
+            const dimensionField = useCustomer ? 'customer_name' : 'station_name';
+
+            // 查询所有任务数据（包含总计划圈次和失败圈次）
+            const result = await this.wsManager.queryStats(apiEndpoint, {
+                startDate: this.currentFilters.startDate,
+                endDate: this.currentFilters.endDate,
+                groupBy: this.currentFilters.groupBy,
+                groupingRule: this.cycleRules[this.currentFilters.groupBy],
+                filters: {
+                    stations: this.currentFilters.stations,
+                    customers: this.currentFilters.customers,
+                    satellites: this.currentFilters.satellites,
+                    taskTypes: this.currentFilters.taskTypes,
+                    taskStatuses: this.currentFilters.taskStatuses
+                }
+            });
+
+            if (result && result.records && result.records.length > 0) {
+                // 按照维度值分组，提取总计划圈次和失败圈次
+                const dimensionMap = new Map();
+                const allPeriods = new Set();
+
+                result.records.forEach(record => {
+                    const dimension = record[dimensionField];
+                    const period = record.period;
+                    const planCount = record.record_count || 0;  // 总计划圈次
+                    const failureCount = record.failure_count || 0;  // 失败圈次
+
+                    allPeriods.add(period);
+
+                    if (!dimensionMap.has(dimension)) {
+                        dimensionMap.set(dimension, new Map());
+                    }
+
+                    const periodMap = dimensionMap.get(dimension);
+                    if (periodMap.has(period)) {
+                        // 累加数据
+                        const stats = periodMap.get(period);
+                        stats.planCount += planCount;
+                        stats.failureCount += failureCount;
+                    } else {
+                        // 新建记录
+                        periodMap.set(period, {
+                            planCount: planCount,
+                            failureCount: failureCount
+                        });
+                    }
+                });
+
+                // 转换为图表数据格式
+                const sortedPeriods = Array.from(allPeriods).sort();
+                const labels = sortedPeriods.map(period => {
+                    let cleanPeriod = period;
+                    if (typeof period === 'string' && (period.includes(' ') || period.includes('T'))) {
+                        cleanPeriod = period.split(/[T ]/)[0];
+                    }
+                    return formatPeriodLabel(cleanPeriod, this.currentFilters.groupBy);
+                });
+
+                const datasets = [];
+                const colorPalette = [
+                    { bg: 'rgba(255, 99, 132, 0.1)', border: 'rgba(255, 99, 132, 1)' },
+                    { bg: 'rgba(54, 162, 235, 0.1)', border: 'rgba(54, 162, 235, 1)' },
+                    { bg: 'rgba(255, 206, 86, 0.1)', border: 'rgba(255, 206, 86, 1)' },
+                    { bg: 'rgba(75, 192, 192, 0.1)', border: 'rgba(75, 192, 192, 1)' },
+                    { bg: 'rgba(153, 102, 255, 0.1)', border: 'rgba(153, 102, 255, 1)' },
+                    { bg: 'rgba(255, 159, 64, 0.1)', border: 'rgba(255, 159, 64, 1)' }
+                ];
+
+                let colorIndex = 0;
+
+                dimensionMap.forEach((periodMap, dimension) => {
+                    const data = sortedPeriods.map((period, index) => {
+                        const stats = periodMap.get(period) || { planCount: 0, failureCount: 0 };
+                        const planCount = stats.planCount;  // 总计划圈次
+                        const failureCount = stats.failureCount;  // 失败圈次
+                        const successCount = planCount - failureCount;  // 成功圈次 = 总计划圈次 - 失败圈次
+
+                        // 计算成功率：成功圈次 / 总计划圈次 × 100%
+                        if (planCount === 0) return 0;
+                        const successRate = parseFloat((successCount / planCount * 100).toFixed(2));
+                        return successRate;
+                    });
+
+                    const color = colorPalette[colorIndex % colorPalette.length];
+                    colorIndex++;
+
+                    datasets.push({
+                        label: dimension,
+                        data: data,
+                        backgroundColor: color.bg,
+                        borderColor: color.border,
+                        borderWidth: 2,
+                        pointBackgroundColor: color.border,
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                        fill: true,
+                        tension: 0.4,
+                        spanGaps: false,
+                        showLine: true
+                    });
+                });
+
+                // 销毁旧图表
+                if (this.charts.successRate) {
+                    this.charts.successRate.destroy();
+                }
+
+                // 创建新图表
+                this.charts.successRate = new Chart(canvas, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: datasets
+                    },
+                    options: this.getChartOptions('成功率趋势', 'successRate')
+                });
+
+                // 创建自定义图例
+                this.createCustomLegend(this.charts.successRate, 'successRateChartLegend');
+
+                // 显示图表
+                canvas.style.display = 'block';
+                if (emptyState) emptyState.classList.add('hidden');
+            } else {
+                // 显示空状态
+                if (this.charts.successRate) {
+                    this.charts.successRate.destroy();
+                    this.charts.successRate = null;
+                }
+                canvas.style.display = 'none';
+                if (emptyState) emptyState.classList.remove('hidden');
+                // 清空图例
+                const legendContainer = document.getElementById('successRateChartLegend');
+                if (legendContainer) legendContainer.innerHTML = '';
+            }
+
+            this.hideChartLoading('successRate');
+        } catch (error) {
+            console.error('❌ 渲染成功率趋势图失败', error);
+            this.hideChartLoading('successRate');
+            this.showError('渲染成功率趋势图失败');
+        }
+    }
+
+    /**
      * 获取图表配置选项
      * @param {string} title - 图表标题
-     * @param {string} chartType - 图表类型 (station, customer, satellite, taskType, taskStatus)
+     * @param {string} chartType - 图表类型 (station, customer, satellite, taskType, taskStatus, successRate)
      */
     getChartOptions(title, chartType) {
+        const isSuccessRate = chartType === 'successRate';
+
         return {
             responsive: true,
             maintainAspectRatio: false,
@@ -1326,7 +1465,18 @@ class TrendAnalysisApp {
                         // 确保所有数据点都显示在 tooltip 中
                         filter: function(tooltipItem) {
                             return true;
-                        }
+                        },
+                        // 成功率图表的tooltip显示百分号
+                        label: isSuccessRate ? function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += context.parsed.y.toFixed(2) + '%';
+                            }
+                            return label;
+                        } : undefined
                     }
                 },
                 datalabels: {
@@ -1339,8 +1489,12 @@ class TrendAnalysisApp {
                         weight: 'bold'
                     },
                     formatter: (value) => {
-                        // 显示所有值，包括0
-                        return value !== null && value !== undefined ? value : '';
+                        if (value === null || value === undefined) return '';
+                        // 成功率显示百分号
+                        if (isSuccessRate) {
+                            return parseFloat(value).toFixed(1) + '%';
+                        }
+                        return value;
                     }
                 }
             },
@@ -1356,10 +1510,11 @@ class TrendAnalysisApp {
                     display: true,
                     title: {
                         display: true,
-                        text: '数量'
+                        text: isSuccessRate ? '成功率(%)' : '数量'
                     },
                     beginAtZero: true,
-                    min: 0  // 明确设置最小值为0，确保0值点显示
+                    min: 0,  // 明确设置最小值为0，确保0值点显示
+                    max: isSuccessRate ? 100 : undefined  // 成功率最大值为100
                 }
             }
         };
@@ -1706,7 +1861,6 @@ class TrendAnalysisApp {
         const filterName = filterMap[chartType];
         if (!filterName) return;
 
-        console.log(`🔄 重置图表筛选器: ${chartType}`);
 
         // 清空选中值
         this.syncLock = true;
@@ -1733,7 +1887,6 @@ class TrendAnalysisApp {
      * 切换数据标签显示
      */
     toggleDataLabels(chartType, show) {
-        console.log(`🏷️ 切换数据标签: ${chartType}, 显示: ${show}`);
 
         // 保存状态
         this.showDataLabels[chartType] = show;
@@ -1754,7 +1907,8 @@ class TrendAnalysisApp {
             'customerChart': { chart: this.charts.customer, name: '客户趋势' },
             'satelliteChart': { chart: this.charts.satellite, name: '卫星趋势' },
             'typeChart': { chart: this.charts.taskType, name: '任务类型趋势' },
-            'statusChart': { chart: this.charts.taskStatus, name: '任务结果状态趋势' }
+            'statusChart': { chart: this.charts.taskStatus, name: '任务结果状态趋势' },
+            'successRateChart': { chart: this.charts.successRate, name: '成功率趋势' }
         };
 
         const chartInfo = chartMap[chartName];
@@ -1768,8 +1922,6 @@ class TrendAnalysisApp {
         link.download = `${chartInfo.name}_${this.currentFilters.startDate}_${this.currentFilters.endDate}.png`;
         link.href = url;
         link.click();
-
-        console.log(`📥 下载图表: ${chartInfo.name}`);
     }
 
     /**
@@ -1777,11 +1929,12 @@ class TrendAnalysisApp {
      */
     downloadData(chartName) {
         const chartMap = {
-            'stationChart': { chart: this.charts.station, name: '测站趋势' },
-            'customerChart': { chart: this.charts.customer, name: '客户趋势' },
-            'satelliteChart': { chart: this.charts.satellite, name: '卫星趋势' },
-            'typeChart': { chart: this.charts.taskType, name: '任务类型趋势' },
-            'statusChart': { chart: this.charts.taskStatus, name: '任务结果状态趋势' }
+            'stationChart': { chart: this.charts.station, name: '测站趋势', isPercentage: false },
+            'customerChart': { chart: this.charts.customer, name: '客户趋势', isPercentage: false },
+            'satelliteChart': { chart: this.charts.satellite, name: '卫星趋势', isPercentage: false },
+            'typeChart': { chart: this.charts.taskType, name: '任务类型趋势', isPercentage: false },
+            'statusChart': { chart: this.charts.taskStatus, name: '任务结果状态趋势', isPercentage: false },
+            'successRateChart': { chart: this.charts.successRate, name: '成功率趋势', isPercentage: true }
         };
 
         const chartInfo = chartMap[chartName];
@@ -1790,11 +1943,10 @@ class TrendAnalysisApp {
             return;
         }
 
-        const csv = chartToCSV(chartInfo.chart);
+        // 如果是成功率图表，传递isPercentage=true以格式化为百分数
+        const csv = chartToCSV(chartInfo.chart, chartInfo.isPercentage);
         const filename = `${chartInfo.name}_${this.currentFilters.startDate}_${this.currentFilters.endDate}.csv`;
         downloadFile(filename, csv, 'text/csv;charset=utf-8');
-
-        console.log(`📥 下载数据: ${chartInfo.name}`);
     }
 
     /**
@@ -1868,7 +2020,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             type: 'pageReady',
             page: 'trend'
         }, window.location.origin);
-        console.log('📨 已通知父窗口：trend-analysis 页面完全就绪');
     }
 
     // 监听父窗口的询问消息（用于页面切换回来时）
@@ -1876,7 +2027,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (event.origin !== window.location.origin) return;
 
         if (event.data && event.data.type === 'requestPageReady') {
-            console.log('📩 收到父窗口询问，回复页面就绪');
             window.parent.postMessage({
                 type: 'pageReady',
                 page: 'trend'

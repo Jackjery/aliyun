@@ -29,7 +29,12 @@
             <nav class="hidden md:flex items-center space-x-6">
                 <a class="nav-link active px-1 py-2" data-page="dashboard">首页</a>
                 <a class="nav-link px-1 py-2" data-page="trend">数据趋势分析</a>
-                <a class="nav-link px-1 py-2" data-page="deep-analysis">深度分析</a>
+                <a class="nav-link px-1 py-2" data-page="trend-comparison">
+                    <svg class="icon mr-1 inline-block" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                    趋势对比分析
+                </a>
                 <a class="nav-link px-1 py-2" data-page="distribution">数据分布统计</a>
                 <a class="nav-link px-1 py-2" data-page="warning">圈次数据预警</a>
                 <a class="nav-link px-1 py-2" data-page="admin">
@@ -106,8 +111,8 @@
         <!-- 趋势分析 iframe -->
         <iframe id="frame-trend" class="page-frame" data-src="pages/trend-analysis.html"></iframe>
 
-        <!-- 深度分析 iframe -->
-        <iframe id="frame-deep-analysis" class="page-frame" data-src="pages/deep-analysis.html"></iframe>
+        <!-- 趋势对比分析 iframe -->
+        <iframe id="frame-trend-comparison" class="page-frame" data-src="pages/trend-comparison.html"></iframe>
 
         <!-- 数据分布统计 iframe -->
         <iframe id="frame-distribution" class="page-frame" data-src="pages/data-distribution.html"></iframe>

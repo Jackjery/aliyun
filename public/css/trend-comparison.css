@@ -1,0 +1,36 @@
+/* ============================================
+   智能期间对比分析 - 极简样式
+   仅保留必要的自定义样式，其余使用Tailwind工具类
+   ============================================ */
+
+/* 分析按钮波纹效果 */
+.analyze-btn {
+    position: relative;
+    overflow: hidden;
+}
+
+.analyze-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(var(--bg-base), 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.analyze-btn:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+.analyze-btn:hover {
+    transform: translateY(-2px);
+}
+
+.analyze-btn:active {
+    transform: translateY(0);
+}
